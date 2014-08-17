@@ -86,11 +86,21 @@ uint8_t porte_channel_map[KINETIS_EXT_PORTE_WIDTH];
  */
 static void ext_lld_exti_irq_enable(void) {
 
+#if KINETIS_EXT_PORTA_WIDTH > 0
   nvicEnableVector(PINA_IRQn, KINETIS_EXT_PORTA_IRQ_PRIORITY);
+#endif
+#if KINETIS_EXT_PORTB_WIDTH > 0
   nvicEnableVector(PINB_IRQn, KINETIS_EXT_PORTB_IRQ_PRIORITY);
+#endif
+#if KINETIS_EXT_PORTC_WIDTH > 0
   nvicEnableVector(PINC_IRQn, KINETIS_EXT_PORTC_IRQ_PRIORITY);
+#endif
+#if KINETIS_EXT_PORTD_WIDTH > 0
   nvicEnableVector(PIND_IRQn, KINETIS_EXT_PORTD_IRQ_PRIORITY);
+#endif
+#if KINETIS_EXT_PORTE_WIDTH > 0
   nvicEnableVector(PINE_IRQn, KINETIS_EXT_PORTE_IRQ_PRIORITY);
+#endif
 }
 
 /**
@@ -100,11 +110,21 @@ static void ext_lld_exti_irq_enable(void) {
  */
 static void ext_lld_exti_irq_disable(void) {
 
+#if KINETIS_EXT_PORTA_WIDTH > 0
   nvicDisableVector(PINA_IRQn);
+#endif
+#if KINETIS_EXT_PORTB_WIDTH > 0
   nvicDisableVector(PINB_IRQn);
+#endif
+#if KINETIS_EXT_PORTC_WIDTH > 0
   nvicDisableVector(PINC_IRQn);
+#endif
+#if KINETIS_EXT_PORTD_WIDTH > 0
   nvicDisableVector(PIND_IRQn);
+#endif
+#if KINETIS_EXT_PORTE_WIDTH > 0
   nvicDisableVector(PINE_IRQn);
+#endif
 }
 
 /*===========================================================================*/
