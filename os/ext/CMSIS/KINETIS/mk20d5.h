@@ -1,8 +1,8 @@
 /*
- * Copyright © 2014 Fabio Utzig, http://fabioutzig.com
+ * Copyright �� 2014 Fabio Utzig, http://fabioutzig.com
  *
  * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the “Software”),
+ * a copy of this software and associated documentation files (the ���Software���),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
@@ -11,7 +11,7 @@
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * THE SOFTWARE IS PROVIDED ���AS IS���, WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -503,6 +503,23 @@ typedef struct
 #define SIM_SCGC5_PORTA              ((uint32_t)0x00000200)    /*!< Port A Clock Gate Control */
 #define SIM_SCGC5_TSI                ((uint32_t)0x00000020)    /*!< TSI Access Control */
 #define SIM_SCGC5_LPTIMER            ((uint32_t)0x00000001)    /*!< Low Power Timer Access Control */
+
+/*******  Bits definition for SIM_SCGC6 register  ************/
+#define SIM_SCGC6_RTC                ((uint32_t)0x20000000)    /*!< RTC Access Control */
+#define SIM_SCGC6_ADC0               ((uint32_t)0x08000000)    /*!< ADC0 Clock Gate Control */
+#define SIM_SCGC6_FTM1               ((uint32_t)0x02000000)    /*!< FTM1 Clock Gate Control */
+#define SIM_SCGC6_FTM0               ((uint32_t)0x01000000)    /*!< FTM0 Clock Gate Control */
+#define SIM_SCGC6_PIT                ((uint32_t)0x00800000)    /*!< PIT Clock Gate Control */
+#define SIM_SCGC6_PDB                ((uint32_t)0x00400000)    /*!< PDB Clock Gate Control */
+#define SIM_SCGC6_USBDCD             ((uint32_t)0x00200000)    /*!< USB DCD Clock Gate Control */
+#define SIM_SCGC6_CRC                ((uint32_t)0x00040000)    /*!< Low Power Timer Access Control */
+#define SIM_SCGC6_I2S                ((uint32_t)0x00008000)    /*!< CRC Clock Gate Control */
+#define SIM_SCGC6_SPI0               ((uint32_t)0x00001000)    /*!< SPI0 Clock Gate Control */
+#define SIM_SCGC6_DMAMUX             ((uint32_t)0x00000010)    /*!< DMA Mux Clock Gate Control */
+#define SIM_SCGC6_FTFL               ((uint32_t)0x00000001)    /*!< Flash Memory Clock Gate Control */
+
+/*******  Bits definition for SIM_SCGC6 register  ************/
+#define SIM_SCGC7_DMA                ((uint32_t)0x00000002)    /*!< DMA Clock Gate Control */
 
 /******  Bits definition for SIM_CLKDIV1 register  ***********/
 #define SIM_CLKDIV1_OUTDIV1_SHIFT    28
