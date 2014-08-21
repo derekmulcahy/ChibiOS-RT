@@ -254,6 +254,7 @@ typedef uint32_t halrtcnt_t;
 
 #include "nvic.h"
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
