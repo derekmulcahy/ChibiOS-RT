@@ -235,7 +235,7 @@ typedef struct DMA_MemMap {
   __IO uint8_t DCHPRI0;         /* Channel 0 Priority Register              */
   __IO uint8_t RESERVED_6[3836];
   DMA_TCD_TypeDef TCD[4];
-} *DMA_TypeDef;
+} DMA_TypeDef;
 
 typedef struct
 {
