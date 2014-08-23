@@ -176,23 +176,34 @@ struct SPIDriver {
 /* Driver macros.                                                            */
 /*===========================================================================*/
 
-/* TAR settings for n bits at 24 Mhz */
-#define KINETIS_SPI_TAR_24MHZ(n)    SPIx_CTARn_FMSZ((n) - 1) | \
-    SPIx_CTARn_CPOL | SPIx_CTARn_CPHA | \
-    SPIx_CTARn_DBR | SPIx_CTARn_PBR(0b00) | SPIx_CTARn_BR(0b0000) | \
-    SPIx_CTARn_CSSCK(0b0000) | SPIx_CTARn_ASC(0b0000) | SPIx_CTARn_DT(0b0000)
+/* TAR settings for n bits at SYSCLK / 2 */
+#define KINETIS_SPI_TAR_SYSCLK_DIV_2(n)\
+    SPIx_CTARn_FMSZ((n) - 1) | \
+    SPIx_CTARn_CPOL | \
+    SPIx_CTARn_CPHA | \
+    SPIx_CTARn_DBR | \
+    SPIx_CTARn_PBR(0) | \
+    SPIx_CTARn_BR(0) | \
+    SPIx_CTARn_CSSCK(0) | \
+    SPIx_CTARn_ASC(0) | \
+    SPIx_CTARn_DT(0)
 
-/* TAR settings for n bits at 27kHz for debugging */
-#define KINETIS_SPI_TAR_SLOW(n)     SPIx_CTARn_FMSZ(((n) - 1)) | \
-    SPIx_CTARn_CPOL | SPIx_CTARn_CPHA | \
-    SPIx_CTARn_DBR | SPIx_CTARn_PBR(0b11) | SPIx_CTARn_BR(0b1001) | \
-    SPIx_CTARn_CSSCK(0b1011) | SPIx_CTARn_ASC(0b0111) | SPIx_CTARn_DT(0b1011)
+/* TAR settings for n bits at SYSCLK / 4096 for debugging */
+#define KINETIS_SPI_TAR_SYSCLK_DIV_4096(n) \
+    SPIx_CTARn_FMSZ(((n) - 1)) | \
+    SPIx_CTARn_CPOL | \
+    SPIx_CTARn_CPHA | \
+    SPIx_CTARn_PBR(0) | \
+    SPIx_CTARn_BR(0xB) | \
+    SPIx_CTARn_CSSCK(0xB) | \
+    SPIx_CTARn_ASC(0x7) | \
+    SPIx_CTARn_DT(0xB)
 
-#define KINETIS_SPI_TAR_8BIT_FAST   KINETIS_SPI_TAR_24MHZ(8)
-#define KINETIS_SPI_TAR_8BIT_SLOW   KINETIS_SPI_TAR_SLOW(8)
+#define KINETIS_SPI_TAR_8BIT_FAST   KINETIS_SPI_TAR_SYSCLK_DIV_2(8)
+#define KINETIS_SPI_TAR_8BIT_SLOW   KINETIS_SPI_TAR_SYSCLK_DIV_4096(8)
 
-#define KINETIS_SPI_TAR0_DEFAULT    KINETIS_SPI_TAR_24MHZ(8)
-#define KINETIS_SPI_TAR1_DEFAULT    KINETIS_SPI_TAR_24MHZ(8)
+#define KINETIS_SPI_TAR0_DEFAULT    KINETIS_SPI_TAR_SYSCLK_DIV_2(8)
+#define KINETIS_SPI_TAR1_DEFAULT    KINETIS_SPI_TAR_SYSCLK_DIV_2(8)
 
 /*
  * A mask of the slave select lines to be managed by KINETIS DSPI.
@@ -206,13 +217,13 @@ struct SPIDriver {
  * then the configuration ssport and sspad values are used to control the
  * slave select directly and the KINETIS DSPI managed select is not used.
  */
-#define KINETIS_SPI_PCS_NONE        (0b00000)
-#define KINETIS_SPI_PCS0            (0b00001)
-#define KINETIS_SPI_PCS1            (0b00010)
-#define KINETIS_SPI_PCS2            (0b00100)
-#define KINETIS_SPI_PCS3            (0b01000)
-#define KINETIS_SPI_PCS4            (0b10000)
-#define KINETIS_SPI_PCS_ALL         (0b11111)
+#define KINETIS_SPI_PCS_NONE        0x00
+#define KINETIS_SPI_PCS0            0x01
+#define KINETIS_SPI_PCS1            0x02
+#define KINETIS_SPI_PCS2            0x04
+#define KINETIS_SPI_PCS3            0x08
+#define KINETIS_SPI_PCS4            0x10
+#define KINETIS_SPI_PCS_ALL         0x1F
 
 /*===========================================================================*/
 /* External declarations.                                                    */
