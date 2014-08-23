@@ -207,7 +207,7 @@ typedef struct  {
 } DMA_TCD_TypeDef;
 
 /** DMA - Peripheral register structure */
-typedef struct DMA_MemMap {
+typedef struct {
   __IO uint32_t CR;             /* Control Register                         */
   __IO uint32_t ES;             /* Error Status Register                    */
   __IO uint8_t RESERVED_0[4];
@@ -242,6 +242,18 @@ typedef struct
   __IO uint8_t  CHCFG[4];
 } DMAMUX_TypeDef;
 
+/** PIT - Peripheral register structure */
+typedef struct  {
+  uint32_t MCR;             /* PIT Module Control Register */
+  uint8_t RESERVED_0[252];
+  struct {
+    uint32_t LDVAL;         /* Timer Load Value Register */
+    uint32_t CVAL;          /* Current Timer Value Register */
+    uint32_t TCTRL;         /* Timer Control Register */
+    uint32_t TFLG;          /* Timer Flag Register */
+  } CHANNEL[4];
+} PIT_TypeDef;
+
 typedef struct
 {
   __IO uint32_t SC;
@@ -259,11 +271,31 @@ typedef struct
   __IO uint32_t C4V;
   __IO uint32_t C5SC;
   __IO uint32_t C5V;
-       uint32_t RESERVED0[5];
+  __IO uint32_t C6SC;
+  __IO uint32_t C6V;
+  __IO uint32_t C7SC;
+  __IO uint32_t C7V;
+  __IO uint32_t CNTIN;
   __IO uint32_t STATUS;
-       uint32_t RESERVED1[12];
+  __IO uint32_t MODE;
+  __IO uint32_t SYNC;
+  __IO uint32_t OUTINIT;
+  __IO uint32_t OUTMASK;
+  __IO uint32_t COMBINE;
+  __IO uint32_t DEADTIME;
+  __IO uint32_t EXTTRIG;
+  __IO uint32_t POL;
+  __IO uint32_t FMS;
+  __IO uint32_t FILTER;
+  __IO uint32_t FLTCTRL;
+  __IO uint32_t QDCTRL;
   __IO uint32_t CONF;
-} TPM_TypeDef;
+  __IO uint32_t FTLPOL;
+  __IO uint32_t SYNCONF;
+  __IO uint32_t INVCTRL;
+  __IO uint32_t SWOCTRL;
+  __IO uint32_t PWMLOAD;
+} FTM_TypeDef;
 
 typedef struct
 {
@@ -440,9 +472,9 @@ typedef struct
 #define DMA_BASE                ((uint32_t)0x40008000)
 #define DMAMUX_BASE             ((uint32_t)0x40021000)
 #define SPI0_BASE               ((uint32_t)0x4002C000)
-#define TPM0_BASE               ((uint32_t)0x40038000)
-#define TPM1_BASE               ((uint32_t)0x40039000)
-#define TPM2_BASE               ((uint32_t)0x4003A000)
+#define PIT_BASE                ((uint32_t)0x40037000)
+#define FTM0_BASE               ((uint32_t)0x40038000)
+#define FTM1_BASE               ((uint32_t)0x40039000)
 #define ADC0_BASE               ((uint32_t)0x4003B000)
 #define LPTMR0_BASE             ((uint32_t)0x40040000)
 #define TSI0_BASE               ((uint32_t)0x40045000)
@@ -472,9 +504,9 @@ typedef struct
 /****************************************************************/
 #define DMA                     ((DMA_TypeDef *)     DMA_BASE)
 #define DMAMUX                  ((DMAMUX_TypeDef *)  DMAMUX_BASE)
-#define TPM0                    ((TPM_TypeDef *)     TPM0_BASE)
-#define TPM1                    ((TPM_TypeDef *)     TPM1_BASE)
-#define TPM2                    ((TPM_TypeDef *)     TPM2_BASE)
+#define PIT                     ((PIT_TypeDef *)     PIT_BASE)
+#define FTM0                    ((FTM_TypeDef *)     FTM0_BASE)
+#define FTM1                    ((FTM_TypeDef *)     FTM1_BASE)
 #define ADC0                    ((ADC_TypeDef *)     ADC0_BASE)
 #define LPTMR0                  ((LPTMR_TypeDef *)   LPTMR0_BASE)
 #define TSI0                    ((TSI_TypeDef *)     TSI0_BASE)
@@ -566,7 +598,7 @@ typedef struct
 #define SIM_SCGC6_CRC                ((uint32_t)0x00040000)    /*!< Low Power Timer Access Control */
 #define SIM_SCGC6_I2S                ((uint32_t)0x00008000)    /*!< CRC Clock Gate Control */
 #define SIM_SCGC6_SPI0               ((uint32_t)0x00001000)    /*!< SPI0 Clock Gate Control */
-#define SIM_SCGC6_DMAMUX             ((uint32_t)0x00000010)    /*!< DMA Mux Clock Gate Control */
+#define SIM_SCGC6_DMAMUX             ((uint32_t)0x00000002)    /*!< DMA Mux Clock Gate Control */
 #define SIM_SCGC6_FTFL               ((uint32_t)0x00000001)    /*!< Flash Memory Clock Gate Control */
 
 /*******  Bits definition for SIM_SCGC6 register  ************/
