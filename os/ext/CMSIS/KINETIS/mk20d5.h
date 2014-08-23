@@ -356,25 +356,24 @@ typedef struct
 
 /** SPI - Peripheral register structure */
 typedef struct {
-  __IO uint32_t MCR;                /* DSPI Module Configuration Register */
-  __IO uint32_t RESERVED0[1];
-  __IO uint32_t TCR;                /* DSPI Transfer Count Register */
-  union {
-    __IO uint32_t CTAR[2];          /* DSPI Clock and Transfer Attributes Register (In Master Mode) */
-    __IO uint32_t CTAR_SLAVE[1];    /* DSPI Clock and Transfer Attributes Register (In Slave Mode) */
+  __IO uint32_t MCR;                /**< DSPI Module Configuration Register, offset: 0x0 */
+       uint32_t RESERVED0[1];
+  __IO uint32_t TCR;                /**< DSPI Transfer Count Register, offset: 0x8 */
+  union {                           /* offset: 0xC */
+    __IO uint32_t CTAR[2];          /**< DSPI Clock and Transfer Attributes Register (In Master Mode), array offset: 0xC, array step: 0x4 */
+    __IO uint32_t CTAR_SLAVE[1];    /**< DSPI Clock and Transfer Attributes Register (In Slave Mode), array offset: 0xC, array step: 0x4 */
   };
-  __IO uint32_t RESERVED1[6];
-  __IO uint32_t SR;                 /* DSPI Status Register */
-  __IO uint32_t RSER;               /* DSPI DMA/Interrupt Request Select and Enable Register */
-  union {
-    __IO uint32_t PUSHR;            /* DSPI PUSH TX FIFO Register In Master Mode */
-    __IO uint32_t PUSHR_SLAVE;      /* DSPI PUSH TX FIFO Register In Slave Mode */
+       uint32_t RESERVED1[6];
+  __IO uint32_t SR;                 /**< DSPI Status Register, offset: 0x2C */
+  __IO uint32_t RSER;               /**< DSPI DMA/Interrupt Request Select and Enable Register, offset: 0x30 */
+  union {                           /* offset: 0x34 */
+    __IO uint32_t PUSHR;            /**< DSPI PUSH TX FIFO Register In Master Mode, offset: 0x34 */
+    __IO uint32_t PUSHR_SLAVE;      /**< DSPI PUSH TX FIFO Register In Slave Mode, offset: 0x34 */
   };
-  __IO uint32_t POPR;               /* DSPI POP RX FIFO Register */
-  __IO uint32_t TXFR[4];            /* DSPI Transmit FIFO Registers */
-  __IO uint32_t RESERVED2[12];
-  __IO uint32_t RXFR[4];            /* DSPI Receive FIFO Registers */
-  __IO uint32_t RESERVED3[12];
+  __I  uint32_t POPR;               /**< DSPI POP RX FIFO Register, offset: 0x38 */
+  __I  uint32_t TXFR[4];            /**< DSPI Transmit FIFO Registers, offset: 0x3C */
+       uint32_t RESERVED2[12];
+  __I  uint32_t RXFR[4];            /**< DSPI Receive FIFO Registers, offset: 0x7C */
 } SPI_TypeDef;
 
 typedef struct
@@ -598,7 +597,7 @@ typedef struct
 #define SIM_SCGC6_CRC                ((uint32_t)0x00040000)    /*!< Low Power Timer Access Control */
 #define SIM_SCGC6_I2S                ((uint32_t)0x00008000)    /*!< CRC Clock Gate Control */
 #define SIM_SCGC6_SPI0               ((uint32_t)0x00001000)    /*!< SPI0 Clock Gate Control */
-#define SIM_SCGC6_DMAMUX             ((uint32_t)0x00000002)    /*!< DMA Mux Clock Gate Control */
+#define SIM_SCGC6_DMAMUX             ((uint32_t)0x00000010)    /*!< DMA Mux Clock Gate Control */
 #define SIM_SCGC6_FTFL               ((uint32_t)0x00000001)    /*!< Flash Memory Clock Gate Control */
 
 /*******  Bits definition for SIM_SCGC6 register  ************/
@@ -1518,10 +1517,7 @@ typedef struct
 /*                                                              */
 /****************************************************************/
 
-//#define SPI0            (*(KINETISK_SPI_t *)0x4002C000)
-
 /***********  Bits definition for SPIx_MCR register  *************/
-//#define SPI0_MCR        (*(volatile uint32_t *)0x4002C000) // DSPI Module Configuration Register
 #define SPIx_MCR_MSTR            ((uint32_t)0x80000000)      // Master/Slave Mode Select
 #define SPIx_MCR_CONT_SCKE       ((uint32_t)0x40000000)      // Continuous SCK Enable
 #define SPIx_MCR_DCONF(n)        (((n) & 3) << 28)           // DSPI Configuration
@@ -1539,43 +1535,43 @@ typedef struct
 #define SPIx_MCR_HALT            ((uint32_t)0x00000001)      // Halt
 
 /***********  Bits definition for SPIx_TCR register  *************/
-//#define SPI0_TCR        (*(volatile uint32_t *)0x4002C008) // DSPI Transfer Count Register
+#define SPIx_TCR_TCNT(n)         (((n) & 0xffff) << 16)      // DSPI Transfer Count Register
 
 /***********  Bits definition for SPIx_CTARn register  *************/
-//#define SPI0_CTAR0      (*(volatile uint32_t *)0x4002C00C) // DSPI Clock and Transfer Attributes Register, In Master Mode
-#define SPIx_CTARn_DBR            ((uint32_t)0x80000000)      // Double Baud Rate
-#define SPIx_CTARn_FMSZ(n)        (((n) & 15) << 27)          // Frame Size (+1)
-#define SPIx_CTARn_CPOL           ((uint32_t)0x04000000)      // Clock Polarity
-#define SPIx_CTARn_CPHA           ((uint32_t)0x02000000)      // Clock Phase
-#define SPIx_CTARn_LSBFE          ((uint32_t)0x01000000)      // LSB First
-#define SPIx_CTARn_PCSSCK(n)      (((n) & 3) << 22)           // PCS to SCK Delay Prescaler
-#define SPIx_CTARn_PASC(n)        (((n) & 3) << 20)           // After SCK Delay Prescaler
-#define SPIx_CTARn_PDT(n)         (((n) & 3) << 18)           // Delay after Transfer Prescaler
-#define SPIx_CTARn_PBR(n)         (((n) & 3) << 16)           // Baud Rate Prescaler
-#define SPIx_CTARn_CSSCK(n)       (((n) & 15) << 12)          // PCS to SCK Delay Scaler
-#define SPIx_CTARn_ASC(n)         (((n) & 15) << 8)           // After SCK Delay Scaler
-#define SPIx_CTARn_DT(n)          (((n) & 15) << 4)           // Delay After Transfer Scaler
-#define SPIx_CTARn_BR(n)          (((n) & 15) << 0)           // Baud Rate Scaler
+#define SPIx_CTARn_DBR            ((uint32_t)0x80000000)     // Double Baud Rate
+#define SPIx_CTARn_FMSZ(n)        (((n) & 15) << 27)         // Frame Size (+1)
+#define SPIx_CTARn_CPOL           ((uint32_t)0x04000000)     // Clock Polarity
+#define SPIx_CTARn_CPHA           ((uint32_t)0x02000000)     // Clock Phase
+#define SPIx_CTARn_LSBFE          ((uint32_t)0x01000000)     // LSB First
+#define SPIx_CTARn_PCSSCK(n)      (((n) & 3) << 22)          // PCS to SCK Delay Prescaler
+#define SPIx_CTARn_PASC(n)        (((n) & 3) << 20)          // After SCK Delay Prescaler
+#define SPIx_CTARn_PDT(n)         (((n) & 3) << 18)          // Delay after Transfer Prescaler
+#define SPIx_CTARn_PBR(n)         (((n) & 3) << 16)          // Baud Rate Prescaler
+#define SPIx_CTARn_CSSCK(n)       (((n) & 15) << 12)         // PCS to SCK Delay Scaler
+#define SPIx_CTARn_ASC(n)         (((n) & 15) << 8)          // After SCK Delay Scaler
+#define SPIx_CTARn_DT(n)          (((n) & 15) << 4)          // Delay After Transfer Scaler
+#define SPIx_CTARn_BR(n)          (((n) & 15) << 0)          // Baud Rate Scaler
 
 
 /***********  Bits definition for SPIx_CTARn_SLAVE register  *************/
-//#define SPI0_CTAR0_SLAVE    (*(volatile uint32_t *)0x4002C00C) // DSPI Clock and Transfer Attributes Register, In Slave Mode
-#define SPIx_CTARn_SLAVE_FMSZ(n)  (((n) & 15) << 27)          // Frame Size (+1)
-#define SPIx_CTARn_SLAVE_CPOL     ((uint32_t)0x04000000)      // Clock Polarity
-#define SPIx_CTARn_SLAVE_CPHA     ((uint32_t)0x02000000)      // Clock Phase
+#define SPIx_CTARn_SLAVE_FMSZ(n)  (((n) & 15) << 27)         // Frame Size (+1)
+#define SPIx_CTARn_SLAVE_CPOL     ((uint32_t)0x04000000)     // Clock Polarity
+#define SPIx_CTARn_SLAVE_CPHA     ((uint32_t)0x02000000)     // Clock Phase
 
 /***********  Bits definition for SPIx_SR register  *************/
-//#define SPI0_SR         (*(volatile uint32_t *)0x4002C02C) // DSPI Status Register
-#define SPIx_SR_TCF          ((uint32_t)0x80000000)          // Transfer Complete Flag
-#define SPIx_SR_TXRXS        ((uint32_t)0x40000000)          // TX and RX Status
-#define SPIx_SR_EOQF         ((uint32_t)0x10000000)          // End of Queue Flag
-#define SPIx_SR_TFUF         ((uint32_t)0x08000000)          // Transmit FIFO Underflow Flag
-#define SPIx_SR_TFFF         ((uint32_t)0x02000000)          // Transmit FIFO Fill Flag
-#define SPIx_SR_RFOF         ((uint32_t)0x00080000)          // Receive FIFO Overflow Flag
-#define SPIx_SR_RFDF         ((uint32_t)0x00020000)          // Receive FIFO Drain Flag
+#define SPIx_SR_TCF               ((uint32_t)0x80000000)     // Transfer Complete Flag
+#define SPIx_SR_TXRXS             ((uint32_t)0x40000000)     // TX and RX Status
+#define SPIx_SR_EOQF              ((uint32_t)0x10000000)     // End of Queue Flag
+#define SPIx_SR_TFUF              ((uint32_t)0x08000000)     // Transmit FIFO Underflow Flag
+#define SPIx_SR_TFFF              ((uint32_t)0x02000000)     // Transmit FIFO Fill Flag
+#define SPIx_SR_RFOF              ((uint32_t)0x00080000)     // Receive FIFO Overflow Flag
+#define SPIx_SR_RFDF              ((uint32_t)0x00020000)     // Receive FIFO Drain Flag
+#define SPIx_SR_TXCTR             (((n) & 15) << 12)         // TX FIFO Counter
+#define SPIx_SR_TXNXPTR           (((n) & 15) << 8)          // Transmit Next Pointer
+#define SPIx_SR_RXCTR             (((n) & 15) << 4)          // RX FIFO Counter
+#define SPIx_SR_POPNXTPTR         ((n) & 15)                 // POP Next Pointer
 
 /***********  Bits definition for SPIx_SR register  *************/
-//#define SPI0_RSER       (*(volatile uint32_t *)0x4002C030) // DSPI DMA/Interrupt Request Select and Enable Register
 #define SPIx_RSER_TCF_RE         ((uint32_t)0x80000000)      // Transmission Complete Request Enable
 #define SPIx_RSER_EOQF_RE        ((uint32_t)0x10000000)      // DSPI Finished Request Request Enable
 #define SPIx_RSER_TFUF_RE        ((uint32_t)0x08000000)      // Transmit FIFO Underflow Request Enable
@@ -1586,7 +1582,6 @@ typedef struct
 #define SPIx_RSER_RFDF_DIRS      ((uint32_t)0x00010000)      // Receive FIFO Drain DMA or Interrupt Request Select
 
 /***********  Bits definition for SPIx_PUSHR register  *************/
-//#define SPI0_PUSHR      (*(volatile uint32_t *)0x4002C034) // DSPI PUSH TX FIFO Register In Master Mode
 #define SPIx_PUSHR_CONT          ((uint32_t)0x80000000)      // Continuous Peripheral Chip Select Enable
 #define SPIx_PUSHR_CTAS(n)       (((n) & 7) << 28)           // Clock and Transfer Attributes Select
 #define SPIx_PUSHR_EOQ           ((uint32_t)0x08000000)      // End Of Queue
@@ -1595,22 +1590,17 @@ typedef struct
 #define SPIx_PUSHR_TXDATA(n)     ((n) & 0xffff)              // Transmit Data
 
 /***********  Bits definition for SPIx_PUSHR_SLAVE register  *************/
-//#define SPI0_PUSHR_SLAVE    (*(volatile uint32_t *)0x4002C034) // DSPI PUSH TX FIFO Register In Slave Mode
+#define SPIx_PUSHR_SLAVE_TXDATA(n) (((n) & 0xffff) << 0)     // Transmit Data in slave mode
 
 /***********  Bits definition for SPIx_POPR register  *************/
-//#define SPI0_POPR       (*(volatile uint32_t *)0x4002C038) // DSPI POP RX FIFO Register
+#define SPIx_POPR_RXDATA(n)      (((n) & 0xffff) << 16)      // Received Data
 
 /***********  Bits definition for SPIx_TXFRn register  *************/
-//#define SPI0_TXFR0      (*(volatile uint32_t *)0x4002C03C) // DSPI Transmit FIFO Registers
-//#define SPI0_TXFR1      (*(volatile uint32_t *)0x4002C040) // DSPI Transmit FIFO Registers
-//#define SPI0_TXFR2      (*(volatile uint32_t *)0x4002C044) // DSPI Transmit FIFO Registers
-//#define SPI0_TXFR3      (*(volatile uint32_t *)0x4002C048) // DSPI Transmit FIFO Registers
+#define SPIx_TXFRn_TXCMD_TXDATA  (((n) & 0xffff) << 16)      // Transmit Command (in master mode)
+#define SPIx_TXFRn_TXDATA(n)     (((n) & 0xffff) << 0)       // Transmit Data
 
 /***********  Bits definition for SPIx_RXFRn register  *************/
-//#define SPI0_RXFR0      (*(volatile uint32_t *)0x4002C07C) // DSPI Receive FIFO Registers
-//#define SPI0_RXFR1      (*(volatile uint32_t *)0x4002C080) // DSPI Receive FIFO Registers
-//#define SPI0_RXFR2      (*(volatile uint32_t *)0x4002C084) // DSPI Receive FIFO Registers
-//#define SPI0_RXFR3      (*(volatile uint32_t *)0x4002C088) // DSPI Receive FIFO Registers
+#define SPIx_RXFRn_RXDATA(n)     (((n) & 0xffff) << 0)       // Receive Data
 
 /****************************************************************/
 /*                                                              */
