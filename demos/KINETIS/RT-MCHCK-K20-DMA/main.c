@@ -59,102 +59,32 @@
 #define DMAMUX_SOURCE_DMAMUX_CHANNEL8   62
 #define DMAMUX_SOURCE_DMAMUX_CHANNEL9   63
 
-static vuint8_t src[5] = {'H', 'e', 'l', 'l', 'o'};
-static vuint8_t dst[5] = { 'x' };
-
-static void common_irq(void) {
-}
+static vuint8_t src[5] = { 'H', 'e', 'l', 'l', 'o' };
+static vuint8_t dst[5] = { 'a', 'b', 'c', 'd', 'e' };
 
 /* DMA channel 0 transfer complete */
 OSAL_IRQ_HANDLER(Vector40) {
   OSAL_IRQ_PROLOGUE();
   vuint8_t a = dst[0];
+  (void)a;
   vuint8_t b = dst[1];
+  (void)b;
   vuint8_t c = dst[2];
+  (void)c;
   vuint8_t d = dst[3];
+  (void)d;
   vuint8_t e = dst[4];
+  (void)e;
   DMA->INT = 0b0001;
   dst[0] = dst[1] = dst[2] = dst[3] = dst[4] = 0;
-  OSAL_IRQ_EPILOGUE();
-}
-
-/* DMA channel 1 transfer complete */
-OSAL_IRQ_HANDLER(Vector44) {
-  OSAL_IRQ_PROLOGUE();
-  common_irq();
-  OSAL_IRQ_EPILOGUE();
-}
-
-/* DMA channel 2 transfer complete */
-OSAL_IRQ_HANDLER(Vector48) {
-  OSAL_IRQ_PROLOGUE();
-  common_irq();
-  OSAL_IRQ_EPILOGUE();
-}
-
-/* DMA channel 3 transfer complete */
-OSAL_IRQ_HANDLER(Vector4C) {
-  OSAL_IRQ_PROLOGUE();
-  common_irq();
-  OSAL_IRQ_EPILOGUE();
-}
-
-/* DMA error interrupt channel */
-OSAL_IRQ_HANDLER(Vector50) {
-  OSAL_IRQ_PROLOGUE();
-  common_irq();
-  OSAL_IRQ_EPILOGUE();
-}
-
-/* DMA interrupt vector */
-OSAL_IRQ_HANDLER(Vector54) {
-  OSAL_IRQ_PROLOGUE();
-  common_irq();
-  OSAL_IRQ_EPILOGUE();
-}
-
-/* FTM0 interrupt vector */
-OSAL_IRQ_HANDLER(VectorA4) {
-  OSAL_IRQ_PROLOGUE();
-  common_irq();
-  OSAL_IRQ_EPILOGUE();
-}
-
-/* FTM1 interrupt vector */
-OSAL_IRQ_HANDLER(VectorA8) {
-  OSAL_IRQ_PROLOGUE();
-  common_irq();
   OSAL_IRQ_EPILOGUE();
 }
 
 /* PIT Channel0  interrupt vector */
 OSAL_IRQ_HANDLER(VectorB8) {
   OSAL_IRQ_PROLOGUE();
-  common_irq();
-
   /* Clear the Timer Interrupt Flag, TIF = 1 */
   PIT->CHANNEL[0].TFLG |= 1;
-  OSAL_IRQ_EPILOGUE();
-}
-
-/* PIT Channel 1 interrupt vector */
-OSAL_IRQ_HANDLER(VectorBC) {
-  OSAL_IRQ_PROLOGUE();
-  common_irq();
-  OSAL_IRQ_EPILOGUE();
-}
-
-/* PIT Channel 2 interrupt vector */
-OSAL_IRQ_HANDLER(VectorC0) {
-  OSAL_IRQ_PROLOGUE();
-  common_irq();
-  OSAL_IRQ_EPILOGUE();
-}
-
-/* PIT Channel 3 interrupt vector */
-OSAL_IRQ_HANDLER(VectorC4) {
-  OSAL_IRQ_PROLOGUE();
-  common_irq();
   OSAL_IRQ_EPILOGUE();
 }
 
@@ -170,14 +100,7 @@ void dmaInit(void) {
   DMA->CR = 0;
 
   nvicEnableVector(DMA0_IRQn, 3);
-  nvicEnableVector(DMAError_IRQn, 3);
-  nvicEnableVector(DMA_IRQn, 3);
   nvicEnableVector(PITChannel0_IRQn, 8);
-  nvicEnableVector(PITChannel1_IRQn, 8);
-  nvicEnableVector(PITChannel2_IRQn, 8);
-  nvicEnableVector(PITChannel3_IRQn, 8);
-  nvicEnableVector(FTM0_IRQn, 9);
-  nvicEnableVector(FTM1_IRQn, 9);
 }
 
 void dmaStart(void) {
