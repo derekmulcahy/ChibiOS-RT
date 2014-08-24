@@ -597,7 +597,7 @@ typedef struct
 #define SIM_SCGC6_CRC                ((uint32_t)0x00040000)    /*!< Low Power Timer Access Control */
 #define SIM_SCGC6_I2S                ((uint32_t)0x00008000)    /*!< CRC Clock Gate Control */
 #define SIM_SCGC6_SPI0               ((uint32_t)0x00001000)    /*!< SPI0 Clock Gate Control */
-#define SIM_SCGC6_DMAMUX             ((uint32_t)0x00000010)    /*!< DMA Mux Clock Gate Control */
+#define SIM_SCGC6_DMAMUX             ((uint32_t)0x00000002)    /*!< DMA Mux Clock Gate Control */
 #define SIM_SCGC6_FTFL               ((uint32_t)0x00000001)    /*!< Flash Memory Clock Gate Control */
 
 /*******  Bits definition for SIM_SCGC6 register  ************/
