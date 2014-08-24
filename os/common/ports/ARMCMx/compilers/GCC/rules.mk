@@ -264,6 +264,8 @@ else
 	@echo
 	@$(SZ) $<
 	@echo
+	@od -A x -x -v build/ch.bin|grep 0000400|tee /dev/stderr|grep -q ffbe
+	@echo
 	@echo Done
 endif
 
