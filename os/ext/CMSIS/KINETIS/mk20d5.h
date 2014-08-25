@@ -1278,6 +1278,28 @@ typedef struct
 
 /****************************************************************/
 /*                                                              */
+/*                 Periodic Interrupt Timer (PIT)               */
+/*                                                              */
+/****************************************************************/
+/* MCR Bit Fields */
+#define PIT_MCR_FRZ                  0x1u
+#define PIT_MCR_MDIS                 0x2u
+/* LDVAL Bit Fields */
+#define PIT_LDVAL_TSV_MASK           0xFFFFFFFFu
+#define PIT_LDVAL_TSV_SHIFT          0
+#define PIT_LDVAL_TSV(x)             (((uint32_t)(((uint32_t)(x))<<PIT_LDVAL_TSV_SHIFT))&PIT_LDVAL_TSV_MASK)
+/* CVAL Bit Fields */
+#define PIT_CVAL_TVL_MASK            0xFFFFFFFFu
+#define PIT_CVAL_TVL_SHIFT           0
+#define PIT_CVAL_TVL(x)              (((uint32_t)(((uint32_t)(x))<<PIT_CVAL_TVL_SHIFT))&PIT_CVAL_TVL_MASK)
+/* TCTRL Bit Fields */
+#define PIT_TCTRL_TEN                0x1u
+#define PIT_TCTRL_TIE                0x2u
+/* TFLG Bit Fields */
+#define PIT_TFLG_TIF                 0x1u
+
+/****************************************************************/
+/*                                                              */
 /*              Analog-to-Digital Converter (ADC)               */
 /*                                                              */
 /****************************************************************/
