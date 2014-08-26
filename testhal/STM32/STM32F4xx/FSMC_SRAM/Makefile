@@ -102,9 +102,6 @@ CSRC = $(PORTSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
-       dma_storm_adc.c \
-       dma_storm_spi.c \
-       dma_storm_uart.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
