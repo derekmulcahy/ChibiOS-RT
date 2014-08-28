@@ -1,4 +1,3 @@
-#if 0
 /*
  * Copyright (C) 2013-2014 Fabio Utzig, http://fabioutzig.com
  *
@@ -21,6 +20,7 @@
  * SOFTWARE.
  */
 
+#ifndef _MK20D5_H_
 #ifndef _KL25Z_H_
 #define _KL25Z_H_
 
