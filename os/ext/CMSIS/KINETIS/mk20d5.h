@@ -20,7 +20,6 @@
  * SOFTWARE.
  */
 
-#ifndef _KL25Z_H_
 #ifndef _MK20D5_H_
 #define _MK20D5_H_
 
@@ -1840,5 +1839,4 @@ typedef struct
 /*********  Bits definition for WDOG_PRESC register  ************/
 #define WDOG_PRESC_PRESCVAL          ((uint16_t)0x0700)
 
-#endif
 #endif

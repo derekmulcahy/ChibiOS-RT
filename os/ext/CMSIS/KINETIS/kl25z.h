@@ -20,7 +20,6 @@
  * SOFTWARE.
  */
 
-#ifndef _MK20D5_H_
 #ifndef _KL25Z_H_
 #define _KL25Z_H_
 
@@ -1145,5 +1144,4 @@ typedef struct
 #define UARTx_C5_BOTHEDGE            ((uint8_t)0x02)    /*!< Both Edge Sampling */
 #define UARTx_C5_RESYNCDIS           ((uint8_t)0x01)    /*!< Resynchronization Disable */
 
-#endif
 #endif
