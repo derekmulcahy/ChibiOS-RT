@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-#define K20x_MCUCONF
+#define KL2x_MCUCONF
 
 /*
  * HAL driver system settings.
@@ -22,22 +22,10 @@
 
 /* Select the MCU clocking mode below by enabling the appropriate block. */
 
-/* Disable all clock intialization */
-#define KINETIS_NO_INIT             FALSE
-
-/* PEE mode - external 8 MHz crystal with PLL for 48 MHz core/system clock. */
-#if 1
-#define KINETIS_MCG_MODE            KINETIS_MCG_MODE_PEE
-#define KINETIS_XTAL_FREQUENCY      8000000UL
-#define KINETIS_SYSCLK_FREQUENCY    48000000UL
-#endif
-
-/* FEI mode - 48 MHz with internal 32.768 kHz crystal */
+/* FEI mode */
 #if 0
 #define KINETIS_MCG_MODE            KINETIS_MCG_MODE_FEI
-#define KINETIS_MCG_FLL_DMX32       1           /* Fine-tune for 32.768 kHz */
-#define KINETIS_MCG_FLL_DRS         1           /* 1464x FLL factor */
-#define KINETIS_SYSCLK_FREQUENCY    47972352UL  /* 32.768 kHz * 1464 (~48 MHz) */
+#define KINETIS_SYSCLK_FREQUENCY    21000000UL
 #endif /* 0 */
 
 /* FEE mode - 24 MHz with external 32.768 kHz crystal */
@@ -94,12 +82,14 @@
 #define KINETIS_EXT_PORTE_WIDTH                 0
 #endif
 
+#if 0
 /* MK20 64pin  */
 #define KINETIS_EXT_PORTA_WIDTH                 20
 #define KINETIS_EXT_PORTB_WIDTH                 20
 #define KINETIS_EXT_PORTC_WIDTH                 12
 #define KINETIS_EXT_PORTD_WIDTH                 8
 #define KINETIS_EXT_PORTE_WIDTH                 2
+#endif
 
 #if 0
 /* MK20 144pin  */
@@ -108,4 +98,47 @@
 #define KINETIS_EXT_PORTC_WIDTH                 20
 #define KINETIS_EXT_PORTD_WIDTH                 16
 #define KINETIS_EXT_PORTE_WIDTH                 13
+#endif
+
+
+#if 0
+/* KL25 32pin */
+#define KINETIS_EXT_PORTA_WIDTH                 21
+#define KINETIS_EXT_PORTD_WIDTH                 8
+#endif
+
+#if 0
+/* KL25 48pin */
+#define KINETIS_EXT_PORTA_WIDTH                 21
+#define KINETIS_EXT_PORTD_WIDTH                 8
+#endif
+
+#if 0
+/* KL25 64pin  */
+#define KINETIS_EXT_PORTA_WIDTH                 21
+#define KINETIS_EXT_PORTD_WIDTH                 8
+#endif
+
+/* KL25 80pin  */
+#define KINETIS_EXT_PORTA_WIDTH                 21
+#define KINETIS_EXT_PORTD_WIDTH                 8
+
+#ifndef KINETIS_EXT_PORTA_WIDTH
+#define KINETIS_EXT_PORTA_WIDTH                 0
+#endif
+
+#ifndef KINETIS_EXT_PORTB_WIDTH
+#define KINETIS_EXT_PORTB_WIDTH                 0
+#endif
+
+#ifndef KINETIS_EXT_PORTC_WIDTH
+#define KINETIS_EXT_PORTC_WIDTH                 0
+#endif
+
+#ifndef KINETIS_EXT_PORTD_WIDTH
+#define KINETIS_EXT_PORTD_WIDTH                 0
+#endif
+
+#ifndef KINETIS_EXT_PORTE_WIDTH
+#define KINETIS_EXT_PORTE_WIDTH                 0
 #endif

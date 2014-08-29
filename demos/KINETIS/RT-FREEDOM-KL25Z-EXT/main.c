@@ -16,13 +16,14 @@
 
 #include "ch.h"
 #include "hal.h"
+//#include "test.h"
 
 /* Triggered when the button is pressed. The blue led is toggled. */
 static void extcb1(EXTDriver *extp, expchannel_t channel) {
   (void)extp;
   (void)channel;
 
-  palTogglePad(IOPORT4, 4);
+  palTogglePad(IOPORT4, 1);
 }
 
 static const EXTConfig extcfg = {
@@ -46,9 +47,15 @@ int main(void) {
   halInit();
   chSysInit();
 
-  palSetPad(IOPORT3, 3);    // Red
-  palSetPad(IOPORT4, 4);    // Green
-  palSetPad(IOPORT1, 2);    // Blue
+  /*
+   * Activates serial 1 (UART0) using the driver default configuration.
+   */
+  sdStart(&SD1, NULL);
+
+  /* Turn the LEDs OFF */
+  palSetPad(IOPORT2, 18);
+  palSetPad(IOPORT2, 19);
+  palSetPad(IOPORT4, 1);
 
   /*
    * Activates the EXT driver 1.
@@ -56,6 +63,7 @@ int main(void) {
   palSetPadMode(IOPORT1, 1, PAL_MODE_INPUT_PULLUP);
   extStart(&EXTD1, &extcfg);
 
+//  TestThread(&SD1);
   while (1) {
     chThdSleepMilliseconds(500);
   }

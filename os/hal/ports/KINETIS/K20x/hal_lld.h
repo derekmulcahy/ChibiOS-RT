@@ -26,6 +26,7 @@
 #define _HAL_LLD_H_
 
 #include "mk20d5.h"
+#include "kinetis_registry.h"
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
