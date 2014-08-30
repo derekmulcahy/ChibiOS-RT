@@ -329,10 +329,14 @@ void ext_lld_channel_enable(EXTDriver *extp, expchannel_t channel) {
   PORT_TypeDef *port = extp->config->channels[channel].port;
   uint32_t pin = extp->config->channels[channel].pin;
 
-  /* Clear the IRQC bits */
-  port->PCR[pin] &= ~PORTx_PCRn_IRQC_MASK;
-  /* Set the IRQC bits */
-  port->PCR[pin] |= PORTx_PCRn_IRQC(irqc);
+  uint32_t pcr = port->PCR[pin];
+
+  /* Clear all the IRQC bits */
+  pcr &= ~PORTx_PCRn_IRQC_MASK;
+  /* Set the required IRQC bits */
+  pcr |= PORTx_PCRn_IRQC(irqc);
+
+  port->PCR[pin] = pcr;
 }
 
 /**
