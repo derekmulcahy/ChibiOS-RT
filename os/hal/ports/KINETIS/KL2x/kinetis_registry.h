@@ -1,5 +1,5 @@
 /*
-    ChibiOS/HAL - Copyright (C) 2006-2014 Giovanni Di Sirio
+    ChibiOS/HAL - Copyright (C) 2014 Fabio Utzig
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -33,11 +33,10 @@
  * @name    KL2x capabilities
  * @{
  */
-/* EXT attributes.*/
 
+/* EXT attributes.*/
 #define KINETIS_PORTA_IRQ_VECTOR    VectorB8
 #define KINETIS_PORTD_IRQ_VECTOR    VectorBC
-
 
 /** @} */
 

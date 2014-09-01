@@ -108,17 +108,18 @@ ICUDriver ICUD9;
  * @param[in] icup      pointer to the @p ICUDriver object
  */
 static void icu_lld_serve_interrupt(ICUDriver *icup) {
-  uint16_t sr;
+  uint32_t sr;
 
   sr  = icup->tim->SR;
   sr &= icup->tim->DIER & STM32_TIM_DIER_IRQ_MASK;
   icup->tim->SR = ~sr;
   if (icup->config->channel == ICU_CHANNEL_1) {
-    if ((sr & STM32_TIM_SR_CC1IF) != 0)
-      _icu_isr_invoke_period_cb(icup);
     if ((sr & STM32_TIM_SR_CC2IF) != 0)
       _icu_isr_invoke_width_cb(icup);
-  } else {
+    if ((sr & STM32_TIM_SR_CC1IF) != 0)
+      _icu_isr_invoke_period_cb(icup);
+  }
+  else {
     if ((sr & STM32_TIM_SR_CC1IF) != 0)
       _icu_isr_invoke_width_cb(icup);
     if ((sr & STM32_TIM_SR_CC2IF) != 0)
@@ -506,7 +507,8 @@ void icu_lld_start(ICUDriver *icup) {
        data faster from within callbacks.*/
     icup->wccrp = &icup->tim->CCR[1];
     icup->pccrp = &icup->tim->CCR[0];
-  } else {
+  }
+  else {
     /* Selected input 2.
        CCMR1_CC1S = 10 = CH1 Input on TI2.
        CCMR1_CC2S = 01 = CH2 Input on TI2.*/
@@ -596,43 +598,126 @@ void icu_lld_stop(ICUDriver *icup) {
 }
 
 /**
- * @brief   Enables the input capture.
+ * @brief   Starts the input capture.
  *
  * @param[in] icup      pointer to the @p ICUDriver object
  *
  * @notapi
  */
-void icu_lld_enable(ICUDriver *icup) {
+void icu_lld_start_capture(ICUDriver *icup) {
 
+  /* Triggering an UG and clearing the IRQ status.*/
   icup->tim->EGR |= STM32_TIM_EGR_UG;
-  icup->tim->SR = 0;                        /* Clear pending IRQs (if any). */
-  if (icup->config->channel == ICU_CHANNEL_1) {
-    if (icup->config->period_cb != NULL)
-      icup->tim->DIER |= STM32_TIM_DIER_CC1IE;
-    if (icup->config->width_cb != NULL)
-      icup->tim->DIER |= STM32_TIM_DIER_CC2IE;
-  } else {
-    if (icup->config->width_cb != NULL)
-      icup->tim->DIER |= STM32_TIM_DIER_CC1IE;
-    if (icup->config->period_cb != NULL)
-      icup->tim->DIER |= STM32_TIM_DIER_CC2IE;
-  }
-  if (icup->config->overflow_cb != NULL)
-    icup->tim->DIER |= STM32_TIM_DIER_UIE;
+  icup->tim->SR = 0;
+
+  /* Timer is started.*/
   icup->tim->CR1 = STM32_TIM_CR1_URS | STM32_TIM_CR1_CEN;
 }
 
 /**
- * @brief   Disables the input capture.
+ * @brief   Waits for the next cycle activation edge.
+ * @details The function waits for the next PWM input activation front then
+ *          brings the driver in the @p ICU_ACTIVE state.
+ * @note    If notifications are enabled then the transition to the
+ *          @p ICU_ACTIVE state is done automatically on the first edge.
+ * @note    The wait is performed in polled mode.
  *
  * @param[in] icup      pointer to the @p ICUDriver object
  *
  * @notapi
  */
-void icu_lld_disable(ICUDriver *icup) {
+void icu_lld_wait_capture(ICUDriver *icup) {
 
-  icup->tim->CR1   = 0;                     /* Initially stopped.           */
-  icup->tim->SR    = 0;                     /* Clear pending IRQs (if any). */
+  if (icup->config->channel == ICU_CHANNEL_1) {
+    /* Resetting capture flag.*/
+    icup->tim->SR &= ~STM32_TIM_SR_CC1IF;
+
+    /* Waiting for an edge.*/
+    while ((icup->tim->SR & STM32_TIM_SR_CC1IF) == 0)
+      ;
+  }
+  else {
+    /* Resetting capture flag.*/
+    icup->tim->SR &= ~STM32_TIM_SR_CC2IF;
+
+    /* Waiting for an edge.*/
+    while ((icup->tim->SR & STM32_TIM_SR_CC2IF) == 0)
+      ;
+  }
+}
+
+/**
+ * @brief   Stops the input capture.
+ *
+ * @param[in] icup      pointer to the @p ICUDriver object
+ *
+ * @notapi
+ */
+void icu_lld_stop_capture(ICUDriver *icup) {
+
+  /* Timer stopped.*/
+  icup->tim->CR1   = 0;
+
+  /* All interrupts disabled.*/
+  icup->tim->DIER &= ~STM32_TIM_DIER_IRQ_MASK;
+}
+
+/**
+ * @brief   Enables notifications.
+ * @pre     The ICU unit must have been activated using @p icuStart().
+ * @note    If the notification is already enabled then the call has no effect.
+ *
+ * @param[in] icup      pointer to the @p ICUDriver object
+ *
+ * @api
+ */
+void icu_enable_notifications(ICUDriver *icup) {
+  uint32_t dier = icup->tim->DIER;
+
+  /* If interrupts were already enabled then the operation is skipped.
+     This is done in order to avoid clearing the SR and risk losing
+     pending interrupts.*/
+  if ((dier & STM32_TIM_DIER_IRQ_MASK) == 0) {
+    /* Previously triggered IRQs are ignored, status cleared.*/
+    icup->tim->SR = 0;
+
+    if (icup->config->channel == ICU_CHANNEL_1) {
+      /* Enabling periodic callback on CC1.*/
+      dier |= STM32_TIM_DIER_CC1IE;
+
+      /* Optionally enabling width callback on CC2.*/
+      if (icup->config->width_cb != NULL)
+        dier |= STM32_TIM_DIER_CC2IE;
+    }
+    else {
+      /* Enabling periodic callback on CC2.*/
+      dier |= STM32_TIM_DIER_CC2IE;
+
+      /* Optionally enabling width callback on CC1.*/
+      if (icup->config->width_cb != NULL)
+        dier |= STM32_TIM_DIER_CC1IE;
+    }
+
+    /* If an overflow callback is defined then also the overflow callback
+       is enabled.*/
+    if (icup->config->overflow_cb != NULL)
+      dier |= STM32_TIM_DIER_UIE;
+
+    /* One single atomic write.*/
+    icup->tim->DIER = dier;
+  }
+}
+
+/**
+ * @brief   Disables notifications.
+ * @pre     The ICU unit must have been activated using @p icuStart().
+ * @note    If the notification is already disabled then the call has no effect.
+ *
+ * @param[in] icup      pointer to the @p ICUDriver object
+ *
+ * @api
+ */
+void icu_disable_notifications(ICUDriver *icup) {
 
   /* All interrupts disabled.*/
   icup->tim->DIER &= ~STM32_TIM_DIER_IRQ_MASK;

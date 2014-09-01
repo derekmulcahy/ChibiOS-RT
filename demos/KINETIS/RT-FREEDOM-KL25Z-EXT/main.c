@@ -16,7 +16,6 @@
 
 #include "ch.h"
 #include "hal.h"
-//#include "test.h"
 
 /* Triggered when the button is pressed. The blue led is toggled. */
 static void extcb1(EXTDriver *extp, expchannel_t channel) {
@@ -63,7 +62,6 @@ int main(void) {
   palSetPadMode(IOPORT1, 1, PAL_MODE_INPUT_PULLUP);
   extStart(&EXTD1, &extcfg);
 
-//  TestThread(&SD1);
   while (1) {
     chThdSleepMilliseconds(500);
   }

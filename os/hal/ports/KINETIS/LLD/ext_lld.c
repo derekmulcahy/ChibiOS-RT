@@ -1,5 +1,5 @@
 /*
-    ChibiOS/HAL - Copyright (C) 2006-2014 Giovanni Di Sirio
+    ChibiOS/HAL - Copyright (C) 2014 Fabio Utzig
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
+
+/* This driver was contributed by Derek Mulcahy */
 
 /**
  * @file    KINETIS/LLD/ext_lld.c
@@ -30,16 +32,16 @@
 /* Driver local definitions.                                                 */
 /*===========================================================================*/
 
-#define PCR_IRQC_DISABLED           0b0000
-#define PCR_IRQC_DMA_RISING_EDGE    0b0001
-#define PCR_IRQC_DMA_FALLING_EDGE   0b0010
-#define PCR_IRQC_DMA_EITHER_EDGE    0b0011
+#define PCR_IRQC_DISABLED           0x0
+#define PCR_IRQC_DMA_RISING_EDGE    0x1
+#define PCR_IRQC_DMA_FALLING_EDGE   0x2
+#define PCR_IRQC_DMA_EITHER_EDGE    0x3
 
-#define PCR_IRQC_LOGIC_ZERO         0b1000
-#define PCR_IRQC_RISING_EDGE        0b1001
-#define PCR_IRQC_FALLING_EDGE       0b1010
-#define PCR_IRQC_EITHER_EDGE        0b1011
-#define PCR_IRQC_LOGIC_ONE          0b1100
+#define PCR_IRQC_LOGIC_ZERO         0x8
+#define PCR_IRQC_RISING_EDGE        0x9
+#define PCR_IRQC_FALLING_EDGE       0xA
+#define PCR_IRQC_EITHER_EDGE        0xB
+#define PCR_IRQC_LOGIC_ONE          0xC
 
 /*===========================================================================*/
 /* Driver exported variables.                                                */
