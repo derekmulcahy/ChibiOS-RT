@@ -244,13 +244,13 @@ typedef struct
 
 /** PIT - Peripheral register structure */
 typedef struct  {
-  uint32_t MCR;             /* PIT Module Control Register */
+  __IO uint32_t MCR;             /* PIT Module Control Register */
   uint8_t RESERVED_0[252];
-  struct {
-    uint32_t LDVAL;         /* Timer Load Value Register */
-    uint32_t CVAL;          /* Current Timer Value Register */
-    uint32_t TCTRL;         /* Timer Control Register */
-    uint32_t TFLG;          /* Timer Flag Register */
+  struct PIT_CHANNEL {
+    __IO uint32_t LDVAL;         /* Timer Load Value Register */
+    __IO uint32_t CVAL;          /* Current Timer Value Register */
+    __IO uint32_t TCTRL;         /* Timer Control Register */
+    __IO uint32_t TFLG;          /* Timer Flag Register */
   } CHANNEL[4];
 } PIT_TypeDef;
 
@@ -560,8 +560,9 @@ typedef struct {
 #define DMAMUX_BASE             ((uint32_t)0x40021000)
 #define SPI0_BASE               ((uint32_t)0x4002C000)
 #define PIT_BASE                ((uint32_t)0x40037000)
-#define FTM0_BASE               ((uint32_t)0x40038000)
-#define FTM1_BASE               ((uint32_t)0x40039000)
+#define TPM0_BASE               ((uint32_t)0x40038000)
+#define TPM1_BASE               ((uint32_t)0x40039000)
+#define TPM2_BASE               ((uint32_t)0x4003A000)
 #define ADC0_BASE               ((uint32_t)0x4003B000)
 #define LPTMR0_BASE             ((uint32_t)0x40040000)
 #define TSI0_BASE               ((uint32_t)0x40045000)
@@ -592,8 +593,9 @@ typedef struct {
 #define DMA                     ((DMA_TypeDef *)     DMA_BASE)
 #define DMAMUX                  ((DMAMUX_TypeDef *)  DMAMUX_BASE)
 #define PIT                     ((PIT_TypeDef *)     PIT_BASE)
-#define FTM0                    ((FTM_TypeDef *)     FTM0_BASE)
-#define FTM1                    ((FTM_TypeDef *)     FTM1_BASE)
+#define TPM0                    ((TPM_TypeDef *)     TPM0_BASE)
+#define TPM1                    ((TPM_TypeDef *)     TPM1_BASE)
+#define TPM2                    ((TPM_TypeDef *)     TPM2_BASE)
 #define ADC0                    ((ADC_TypeDef *)     ADC0_BASE)
 #define LPTMR0                  ((LPTMR_TypeDef *)   LPTMR0_BASE)
 #define TSI0                    ((TSI_TypeDef *)     TSI0_BASE)

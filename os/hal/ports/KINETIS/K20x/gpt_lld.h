@@ -181,17 +181,6 @@ typedef struct {
    */
   gptcallback_t             callback;
   /* End of the mandatory fields.*/
-  /**
-   * @brief PIT CR2 register initialization data.
-   * @note  The value of this field should normally be equal to zero.
-   */
-  uint32_t                  cr2;
-  /**
-   * @brief PIT DIER register initialization data.
-   * @note  The value of this field should normally be equal to zero.
-   * @note  Only the DMA-related bits can be specified in this field.
-   */
-  uint32_t                  dier;
 } GPTConfig;
 
 /**
@@ -215,13 +204,9 @@ struct GPTDriver {
    */
   uint32_t                  clock;
   /**
-   * @brief Pointer to the PIT registers block.
+   * @brief Channel structure in PIT registers block.
    */
-  PIT_TypeDef               *pit;
-  /**
-   * @brief Channel index in PIT registers block.
-   */
-  uint8_t                  channel;
+  struct PIT_CHANNEL        *channel;
 };
 
 /*===========================================================================*/
@@ -241,7 +226,7 @@ struct GPTDriver {
  * @notapi
  */
 #define gpt_lld_change_interval(gptp, interval)                               \
-  ((gptp)->pit->CHANNEL[gptp->channel].LDVAL = (uint32_t)((interval)))
+  ((gptp)->channel->LDVAL = (uint32_t)((interval)))
 
 /**
  * @brief   Returns the interval of GPT peripheral.

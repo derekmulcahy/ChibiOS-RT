@@ -17,6 +17,8 @@
 #include "ch.h"
 #include "hal.h"
 
+#define POLLED_TEST     FALSE
+
 void gptcb(GPTDriver *gptp) {
 
   (void)gptp;
@@ -25,15 +27,11 @@ void gptcb(GPTDriver *gptp) {
 }
 
 /*
- * SPI1 configuration structure.
- * The slave select line is the PCS4 pin also assigned to GPIOC pin 0.
+ * GPT configuration structure.
  */
 static const GPTConfig gpt1cfg = {
-  2,
-  gptcb,
-  /* HW dependent part.*/
-  0,
-  0
+  4,
+  gptcb
 };
 
 /*
@@ -51,14 +49,21 @@ int main(void) {
   halInit();
   chSysInit();
 
-
   /*
-   *  Initializes the SPI driver 1.
+   *  Initializes the GPT driver 1.
    */
   gptStart(&GPTD1, &gpt1cfg);
-  gptStartContinuous(&GPTD1, 1);
+
+#if !POLLED_TEST
+  gptStartContinuous(&GPTD1, 2);
+#endif
 
   while (1) {
+#if POLLED_TEST
+    gpt_lld_polled_delay(&GPTD1, 1) ;
+    palTogglePad(GPIOB, GPIOB_LED);
+#else
     chThdSleepMilliseconds(500);
+#endif
   }
 }
