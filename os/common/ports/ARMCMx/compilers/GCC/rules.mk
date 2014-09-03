@@ -264,7 +264,7 @@ else
 	@echo
 	@$(SZ) $<
 	@echo
-	@od -A x -x -v build/ch.bin|grep 0000400|tee /dev/stderr|grep -q 'ff[fb]e'
+	@od -A x -x -v build/ch.bin|grep 0000400|tee /dev/stderr|grep -q 'ff[fb7]e'
 	@echo
 	@echo Done
 endif
