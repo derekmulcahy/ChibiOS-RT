@@ -245,7 +245,7 @@ typedef struct
 /** PIT - Peripheral register structure */
 typedef struct  {
   __IO uint32_t MCR;             /* PIT Module Control Register */
-  uint8_t RESERVED_0[252];
+       uint8_t  RESERVED0[252];
   struct PIT_CHANNEL {
     __IO uint32_t LDVAL;         /* Timer Load Value Register */
     __IO uint32_t CVAL;          /* Current Timer Value Register */
@@ -1354,28 +1354,6 @@ typedef struct {
 
 /****************************************************************/
 /*                                                              */
-/*                 Periodic Interrupt Timer (PIT)               */
-/*                                                              */
-/****************************************************************/
-/* MCR Bit Fields */
-#define PIT_MCR_FRZ                  0x1u
-#define PIT_MCR_MDIS                 0x2u
-/* LDVAL Bit Fields */
-#define PIT_LDVAL_TSV_MASK           0xFFFFFFFFu
-#define PIT_LDVAL_TSV_SHIFT          0
-#define PIT_LDVAL_TSV(x)             (((uint32_t)(((uint32_t)(x))<<PIT_LDVAL_TSV_SHIFT))&PIT_LDVAL_TSV_MASK)
-/* CVAL Bit Fields */
-#define PIT_CVAL_TVL_MASK            0xFFFFFFFFu
-#define PIT_CVAL_TVL_SHIFT           0
-#define PIT_CVAL_TVL(x)              (((uint32_t)(((uint32_t)(x))<<PIT_CVAL_TVL_SHIFT))&PIT_CVAL_TVL_MASK)
-/* TCTRL Bit Fields */
-#define PIT_TCTRL_TEN                0x1u
-#define PIT_TCTRL_TIE                0x2u
-/* TFLG Bit Fields */
-#define PIT_TFLG_TIF                 0x1u
-
-/****************************************************************/
-/*                                                              */
 /*                   FlexTimer Module (FTM)                     */
 /*                                                              */
 /****************************************************************/
@@ -1773,6 +1751,28 @@ typedef struct {
 #define FTM_PWMLOAD_CH7SEL_SHIFT                 7
 #define FTM_PWMLOAD_LDOK_MASK                    0x200u
 #define FTM_PWMLOAD_LDOK_SHIFT                   9
+
+/****************************************************************/
+/*                                                              */
+/*                 Periodic Interrupt Timer (PIT)               */
+/*                                                              */
+/****************************************************************/
+/* MCR Bit Fields */
+#define PIT_MCR_FRZ                              0x1u
+#define PIT_MCR_MDIS                             0x2u
+/* LDVAL Bit Fields */
+#define PIT_LDVAL_TSV_MASK                       0xFFFFFFFFu
+#define PIT_LDVAL_TSV_SHIFT                      0
+#define PIT_LDVAL_TSV(x)                         (((uint32_t)(((uint32_t)(x))<<PIT_LDVAL_TSV_SHIFT))&PIT_LDVAL_TSV_MASK)
+/* CVAL Bit Fields */
+#define PIT_CVAL_TVL_MASK                        0xFFFFFFFFu
+#define PIT_CVAL_TVL_SHIFT                       0
+#define PIT_CVAL_TVL(x)                          (((uint32_t)(((uint32_t)(x))<<PIT_CVAL_TVL_SHIFT))&PIT_CVAL_TVL_MASK)
+/* TCTRL Bit Fields */
+#define PIT_TCTRL_TEN                            0x1u
+#define PIT_TCTRL_TIE                            0x2u
+/* TFLG Bit Fields */
+#define PIT_TFLG_TIF                             0x1u
 
 /****************************************************************/
 /*                                                              */

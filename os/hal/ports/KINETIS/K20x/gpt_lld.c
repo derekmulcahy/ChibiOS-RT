@@ -1,5 +1,5 @@
 /*
-    ChibiOS/HAL - Copyright (C) 2006-2014 Giovanni Di Sirio
+    ChibiOS/HAL - Copyright (C) 2014 Fabio Utzig
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
+
+/* This driver was contributed by Derek Mulcahy */
 
 /**
  * @file    KINETIS/gpt_lld.c
@@ -254,7 +256,6 @@ void gpt_lld_start(GPTDriver *gptp) {
   psc = (uint16_t)((gptp->clock / gptp->config->frequency) - 1);
   osalDbgAssert(((uint32_t)(psc + 1) * gptp->config->frequency) == gptp->clock,
                 "invalid frequency");
-
 
   /* Enable the PIT */
   PIT->MCR = 0;
