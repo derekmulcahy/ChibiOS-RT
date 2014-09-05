@@ -1168,5 +1168,30 @@ typedef struct
 #define UARTx_C5_RDMAE               ((uint8_t)0x20)    /*!< Receiver Full DMA Enable */
 #define UARTx_C5_BOTHEDGE            ((uint8_t)0x02)    /*!< Both Edge Sampling */
 #define UARTx_C5_RESYNCDIS           ((uint8_t)0x01)    /*!< Resynchronization Disable */
+/****************************************************************/
+/*                                                              */
+/*             Power Management Controller (PMC)                */
+/*                                                              */
+/****************************************************************/
+/*********  Bits definition for PMC_LVDSC1 register  *************/
+#define PMC_LVDSC1_LVDF               ((uint8_t)0x80)   /*!< Low-Voltage Detect Flag */
+#define PMC_LVDSC1_LVDACK             ((uint8_t)0x40)   /*!< Low-Voltage Detect Acknowledge */
+#define PMC_LVDSC1_LVDIE              ((uint8_t)0x20)   /*!< Low-Voltage Detect Interrupt Enable */
+#define PMC_LVDSC1_LVDRE              ((uint8_t)0x10)   /*!< Low-Voltage Detect Reset Enable */
+#define PMC_LVDSC1_LVDV_MASK          ((uint8_t)0x3)    /*!< Low-Voltage Detect Voltage Select */
+#define PMC_LVDSC1_LVDV_SHIFT         0
+#define PMC_LVDSC1_LVDV(x)            (((uint8_t)(((uint8_t)(x))<<PMC_LVDSC1_LVDV_SHIFT))&PMC_LVDSC1_LVDV_MASK)
+/*********  Bits definition for PMC_LVDSC1 register  *************/
+#define PMC_LVDSC2_LVWF               ((uint8_t)0x80)   /*!< Low-Voltage Warning Flag */
+#define PMC_LVDSC2_LVWACK             ((uint8_t)0x40)   /*!< Low-Voltage Warning Acknowledge */
+#define PMC_LVDSC2_LVWIE              ((uint8_t)0x20)   /*!< Low-Voltage Warning Interrupt Enable */
+#define PMC_LVDSC2_LVWV_MASK          0x3               /*!< Low-Voltage Warning Voltage Select */
+#define PMC_LVDSC2_LVWV_SHIFT         0
+#define PMC_LVDSC2_LVWV(x)            (((uint8_t)(((uint8_t)(x))<<PMC_LVDSC2_LVWV_SHIFT))&PMC_LVDSC2_LVWV_MASK)
+/*********  Bits definition for PMC_REGSC register  *************/
+#define PMC_REGSC_BGEN                ((uint8_t)0x10)   /*!< Bandgap Enable In VLPx Operation */
+#define PMC_REGSC_ACKISO              ((uint8_t)0x8)    /*!< Acknowledge Isolation */
+#define PMC_REGSC_REGONS              ((uint8_t)0x4)    /*!< Regulator In Run Regulation Status */
+#define PMC_REGSC_BGBE                ((uint8_t)0x1)    /*!< Bandgap Buffer Enable */
 
 #endif

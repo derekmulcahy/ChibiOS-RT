@@ -1,5 +1,5 @@
 /*
-    ChibiOS/HAL - Copyright (C) 2006-2014 Giovanni Di Sirio
+    ChibiOS/HAL - Copyright (C) 2014 Derek Mulcahy
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
 */
 
 /**
- * @file    STM32F4xx/adc_lld.c
- * @brief   STM32F4xx/STM32F2xx ADC subsystem low level driver source.
+ * @file    KINETIS/LLD/adc_lld.c
+ * @brief   KINETIS ADC subsystem low level driver source.
  *
  * @addtogroup ADC
  * @{
@@ -211,8 +211,9 @@ void adc_lld_stop(ADCDriver *adcp) {
 void adc_lld_start_conversion(ADCDriver *adcp) {
   const ADCConversionGroup *grpp = adcp->grpp;
 
+  /* Enable the Bandgap Buffer if channel mask includes BANDGAP */
   if (grpp->channel_mask & ADC_BANDGAP) {
-    PMC->REGSC |= 1;
+    PMC->REGSC |= PMC_REGSC_BGBE;
   }
 
   adcp->number_of_samples = adcp->depth * grpp->num_channels;
@@ -244,8 +245,10 @@ void adc_lld_start_conversion(ADCDriver *adcp) {
 void adc_lld_stop_conversion(ADCDriver *adcp) {
   const ADCConversionGroup *grpp = adcp->grpp;
 
+  /* Disable the Bandgap buffer if channel mask includes BANDGAP */
   if (grpp->channel_mask & ADC_BANDGAP) {
-    PMC->REGSC &= ~1;
+    /* Clear BGBE, ACKISO is w1c, avoid setting */
+    PMC->REGSC &= ~(PMC_REGSC_BGBE | PMC_REGSC_ACKISO);
   }
 
 }

@@ -1,5 +1,5 @@
 /*
-    ChibiOS/RT - Copyright (C) 2006-2014 Giovanni Di Sirio
+    ChibiOS/RT - Copyright (C) 2014 Derek Mulcahy
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,18 +16,6 @@
 
 #include "ch.h"
 #include "hal.h"
-
-
-static THD_WORKING_AREA(waThread1, 64);
-static THD_FUNCTION(Thread1, arg) {
-
-  (void)arg;
-  while (TRUE) {
-    chThdSleepMilliseconds(300);
-  }
-
-  return 0;
-}
 
 #define ADC_GRP1_NUM_CHANNELS   2
 #define ADC_GRP1_BUF_DEPTH      1
@@ -71,15 +59,18 @@ static void adc_end_cb(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
   int32_t delta = (((vamb - v25) * 1000000) / m);
   int32_t temp = 25000 - delta;
 
-  if (temp < 20000) {
+  if (temp < 19000) {
+    /* Turn just the Blue LED on if less than 19C */
     palSetPad(GPIOB,18);    // Red
     palSetPad(GPIOB,19);    // Green
     palClearPad(GPIOD,1);   // Blue
-  } else if (temp > 27000) {
+  } else if (temp > 28000) {
+    /* Turn just the Red LED on if greater than 28C */
     palClearPad(GPIOB,18);  // Red
     palSetPad(GPIOB,19);    // Green
     palSetPad(GPIOD,1);     // Blue
   } else {
+    /* Turn just the Green LED on if between 19C and 28C */
     palSetPad(GPIOB,18);    // Red
     palClearPad(GPIOB,19);  // Green
     palSetPad(GPIOD,1);     // Blue
@@ -106,6 +97,7 @@ static const ADCConversionGroup adcgrpcfg1 = {
 };
 
 static const ADCConfig adccfg1 = {
+  /* Perform initial calibration */
   true
 };
 
@@ -123,11 +115,6 @@ int main(void) {
    */
   halInit();
   chSysInit();
-
-  /*
-   * Creates the worker threads.
-   */
-  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
 
   /*
    * Activates the ADC1 driver.
