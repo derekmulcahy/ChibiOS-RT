@@ -42,6 +42,11 @@
 #define KINETIS_HAS_ADC0            TRUE
 #define KINETIS_ADC0_IRC_VECTOR     Vector7C
 
+/* RTC attributes.*/
+#define KINETIS_HAS_RTC                 TRUE
+#define KINETIS_RTC_ALARM_IRQ_VECTOR    Vector90
+#define KINETIS_RTC_SECONDS_IRQ_VECTOR  Vector94
+
 /** @} */
 
 #endif /* _KINETIS_REGISTRY_H_ */
