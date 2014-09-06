@@ -15,8 +15,8 @@
 */
 
 /**
- * @file    KL2x/kinetis_registry.h
- * @brief   KL2x capabilities registry.
+ * @file    K20x/kinetis_registry.h
+ * @brief   K20x capabilities registry.
  *
  * @addtogroup HAL
  * @{
@@ -30,7 +30,7 @@
 /*===========================================================================*/
 
 /**
- * @name    KL2x capabilities
+ * @name    K20x capabilities
  * @{
  */
 /* EXT attributes.*/
@@ -44,6 +44,11 @@
 /* ADC attributes.*/
 #define KINETIS_HAS_ADC0            TRUE
 #define KINETIS_ADC0_IRC_VECTOR     Vector98
+
+/* RTC attributes.*/
+#define KINETIS_HAS_RTC                 TRUE
+#define KINETIS_RTC_ALARM_IRQ_VECTOR    VectorB0
+#define KINETIS_RTC_SECONDS_IRQ_VECTOR  VectorB4
 
 /** @} */
 
