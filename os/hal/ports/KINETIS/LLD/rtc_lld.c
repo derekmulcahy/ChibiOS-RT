@@ -24,6 +24,8 @@
 
 #include "hal.h"
 
+#include <time.h>
+
 #if HAL_USE_RTC || defined(__DOXYGEN__)
 
 /*===========================================================================*/
@@ -51,16 +53,45 @@ RTCDriver RTCD1;
 /* Driver local functions.                                                   */
 /*===========================================================================*/
 
-/*
- * Derived from https://community.freescale.com/docs/DOC-94734
- */
+static time_t RTCDateTime2TimeT(const RTCDateTime *dtp) {
 
-void rtc_kl2x_init() {
-  /* Enable the internal reference clock. MCGIRCLK is active */
-//  MCG->C1 |= MCG_C1_IRCLKEN;
+  struct tm tm;
 
-  /* Select the slow internal reference clock source. */
-//  MCG->C2 &= ~(MCG_C2_IRCS);
+  tm.tm_year = dtp->year + 80;
+  tm.tm_mon = dtp->month - 1;
+  tm.tm_isdst = dtp->dstflag;
+  /* tm_wday is calculated by mktime from other fields */
+  tm.tm_mday = dtp->day;
+
+  /* Truncate the milliseconds when converting to seconds.*/
+  uint32_t seconds = dtp->millisecond / 1000;
+  tm.tm_hour = seconds / 3600;
+  tm.tm_min = seconds / 60 % 60;
+  tm.tm_sec = seconds % 60;
+
+  return mktime(&tm);
+}
+
+static void TimeT2RTCDateTime(const time_t tt, RTCDateTime *dtp) {
+
+  struct tm tm;
+  localtime_r(&tt, &tm);
+
+  dtp->year = tm.tm_year - 80;
+  dtp->month = tm.tm_mon + 1;
+  dtp->dstflag = tm.tm_isdst;
+  dtp->dayofweek = tm.tm_wday == 0 ? RTC_DAY_SUNDAY : tm.tm_wday;
+  dtp->day = tm.tm_mday;
+  dtp->millisecond = ((tm.tm_hour * 60 + tm.tm_min) * 60 + tm.tm_sec) * 1000;
+}
+
+static void rtc_clock_init(void) {
+#if defined(KL2x_MCUCONF)
+#if  KINETIS_RTC_HAS_32KHZ_CRYSTAL
+#else
+  /*
+   * Derived from https://community.freescale.com/docs/DOC-94734
+   */
 
   /* Set PCT1 as RTC_CLKIN and select 32 KHz clock source for the RTC module */
   PORTC->PCR[1] |= PORTx_PCRn_MUX(0x1);
@@ -70,8 +101,57 @@ void rtc_kl2x_init() {
    * Set PTC3 as CLKOUT pin and selects the MCGIRCLK clock to output on the
    * CLKOUT pin.
    */
-//  SIM->SOPT2 |= SIM_SOPT2_CLKOUTSEL(0b100);
-//  PORTC->PCR[3] |= PORTx_PCRn_MUX(0x5);
+  /* Enable the internal reference clock. MCGIRCLK is active */
+  //  MCG->C1 |= MCG_C1_IRCLKEN;
+
+  /* Select the slow internal reference clock source. */
+  //  MCG->C2 &= ~(MCG_C2_IRCS);
+
+  //  SIM->SOPT2 |= SIM_SOPT2_CLKOUTSEL(0b100);
+  //  PORTC->PCR[3] |= PORTx_PCRn_MUX(0x5);
+#endif
+#endif /* defined(KL2x_MCUCONF) */
+
+#if defined(K20x_MCUCONF)
+#if  KINETIS_RTC_HAS_32KHZ_CRYSTAL
+#else
+#endif /* KINETIS_RTC_HAS_32KHZ_CRYSTAL */
+#endif /* defined(K20x_MCUCONF) */
+}
+
+void rtc_lld_start(RTCDriver *rtcp) {
+
+  /* IRQ vector permanently assigned to this driver.*/
+  nvicEnableVector(RTCAlarm_IRQn, KINETIS_RTC_ALARM_IRQ_PRIORITY);
+  nvicEnableVector(RTCSeconds_IRQn, KINETIS_RTC_SECONDS_IRQ_PRIORITY);
+
+  rtc_clock_init();
+
+  /* Enable software access and interrupts to the RTC module. */
+  SIM->SCGC6 |= SIM_SCGC6_RTC;
+
+  /* Clear all RTC registers. */
+  RTC->CR = RTC_CR_SWR;
+  RTC->CR &= ~RTC_CR_SWR;
+
+  /* If Invalid then set the Time Seconds Register */
+  if (RTC->SR & RTC_SR_TIF)
+    RTC->TSR = 0x00000000;
+
+  /* Disable the Alarm by setting it in the past */
+  RTC->TAR = RTC->TSR - 1;
+
+  /* Set time compensation parameters. */
+  /* FIXME: Configure values for correction */
+  RTC->TCR = RTC_TCR_CIR(1) | RTC_TCR_TCR(0xFF);
+
+  /* Enable Invalid, Overflow and Seconds interrupts. */
+  RTC->IER = RTC_IER_TIIE | RTC_IER_TOIE | RTC_IER_TSIE;
+
+  /* Enable time counter */
+  RTC->SR |= RTC_SR_TCE;
+
+  rtcp->state = RTC_STARTED;
 }
 
 /*===========================================================================*/
@@ -138,51 +218,31 @@ CH_IRQ_HANDLER(KINETIS_RTC_SECONDS_IRQ_VECTOR) {
  * @notapi
  */
 void rtc_lld_init(void){
-  /* IRQ vector permanently assigned to this driver.*/
-  nvicEnableVector(RTCAlarm_IRQn, KINETIS_RTC_ALARM_IRQ_PRIORITY);
-  nvicEnableVector(RTCSeconds_IRQn, KINETIS_RTC_SECONDS_IRQ_PRIORITY);
-
-  rtc_kl2x_init();
-
-  /* Enable software access and interrupts to the RTC module. */
-  SIM->SCGC6 |= SIM_SCGC6_RTC;
-
-  /* Clear all RTC registers. */
-  RTC->CR = RTC_CR_SWR;
-  RTC->CR &= ~RTC_CR_SWR;
-
-  if (RTC->SR & RTC_SR_TIF)
-    RTC->TSR = 0x00000000;
-
-  /* Disable the Alarm by setting it in the past */
-  RTC->TAR = RTC->TSR - 1;
-
-  /* Set time compensation parameters. */
-  RTC->TCR = RTC_TCR_CIR(1) | RTC_TCR_TCR(0xFF);
-
-  /* Enable Alarm, Invalid, Overflow and Seconds interrupts. */
-  RTC->IER = RTC_IER_TAIE | RTC_IER_TIIE | RTC_IER_TOIE | RTC_IER_TSIE;
-
-  /* Enable time counter */
-  RTC->SR |= RTC_SR_TCE;
+  RTCD1.state = RTC_STOPPED;
 }
 
 /**
  * @brief   Set current time.
- * @note    Fractional part will be silently ignored. There is no possibility
- *          to change it on STM32F1xx platform.
+ * @note    Fractional part will be silently ignored.
  *
  * @param[in] rtcp      pointer to RTC driver structure
  * @param[in] timespec  pointer to a @p RTCTime structure
  *
  * @notapi
  */
-void rtc_lld_set_time(RTCDriver *rtcp, const RTCDateTime *timespec) {
+void rtc_lld_set_time(RTCDriver *rtcp, const RTCDateTime *dtp) {
 
-  (void)rtcp;
+  if (rtcp->state == RTC_STOPPED) {
+    rtc_lld_start(rtcp);
+  }
 
-  /* FIXME: The time has to be calculated from the timespec fields */
-  RTC->TSR = timespec->millisecond;
+  /* Disable the clock */
+  RTC->SR &= ~RTC_SR_TCE;
+
+  RTC->TSR = RTCDateTime2TimeT(dtp);
+
+  /* Enable the clock */
+  RTC->SR |= RTC_SR_TCE;
 }
 
 /**
@@ -193,18 +253,17 @@ void rtc_lld_set_time(RTCDriver *rtcp, const RTCDateTime *timespec) {
  *
  * @notapi
  */
-void rtc_lld_get_time(RTCDriver *rtcp, RTCDateTime *timespec) {
+void rtc_lld_get_time(RTCDriver *rtcp, RTCDateTime *dtp) {
 
-  (void)rtcp;
+  if (rtcp->state == RTC_STOPPED) {
+    rtc_lld_start(rtcp);
+  }
 
-  /* FIXME: The time has to be stored into the timespec fields */
-  timespec->millisecond = RTC->TSR;
+  TimeT2RTCDateTime(RTC->TSR, dtp);
 }
 
 /**
  * @brief   Set alarm time.
- *
- * @note      Default value after BKP domain reset is 0xFFFFFFFF
  *
  * @param[in] rtcp      pointer to RTC driver structure
  * @param[in] alarm     alarm identifier
@@ -216,11 +275,17 @@ void rtc_lld_set_alarm(RTCDriver *rtcp,
                        rtcalarm_t alarm,
                        const RTCAlarm *alarmspec) {
 
-  (void)rtcp;
   (void)alarm;
 
+  if (rtcp->state == RTC_STOPPED) {
+    rtc_lld_start(rtcp);
+  }
   if (alarmspec != NULL) {
-    RTC->TAR = alarmspec->tv_sec;
+    if (alarmspec->type == RTC_ALARM_DELTA) {
+      RTC->TAR = RTC->TSR + alarmspec->u.delta;
+    } else if (alarmspec->type == RTC_ALARM_ABSOLUTE) {
+      RTC->TAR = RTCDateTime2TimeT(&alarmspec->u.absolute);
+    }
     /* Enable Time Alarm Interrupt */
     RTC->IER |= RTC_IER_TAIE;
   }
@@ -237,8 +302,6 @@ void rtc_lld_set_alarm(RTCDriver *rtcp,
  * @note    If an alarm has not been set then the returned alarm specification
  *          is not meaningful.
  *
- * @note    Default value after BKP domain reset is 0xFFFFFFFF.
- *
  * @param[in] rtcp      pointer to RTC driver structure
  * @param[in] alarm     alarm identifier
  * @param[out] alarmspec pointer to a @p RTCAlarm structure
@@ -249,10 +312,16 @@ void rtc_lld_get_alarm(RTCDriver *rtcp,
                        rtcalarm_t alarm,
                        RTCAlarm *alarmspec) {
 
-  (void)rtcp;
   (void)alarm;
 
-  alarmspec->tv_sec = RTC->TAR;
+  if (rtcp->state == RTC_STOPPED) {
+    rtc_lld_start(rtcp);
+  }
+
+  if (alarmspec->type == RTC_ALARM_DELTA)
+    alarmspec->u.delta = RTC->TAR - RTC->TSR;
+  else if (alarmspec->type == RTC_ALARM_ABSOLUTE)
+    TimeT2RTCDateTime(RTC->TSR, &alarmspec->u.absolute);
 }
 
 /**

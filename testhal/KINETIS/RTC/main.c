@@ -18,6 +18,18 @@
 #include "hal.h"
 #include "chrtclib.h"
 
+static const RTCAlarm alarmspec1[1] = {
+  /* 10 seconds hence */
+  { RTC_ALARM_DELTA, .u.delta = 10 }
+};
+
+static const RTCAlarm alarmspec2[1] = {
+  /* December 31st 2014, 11:59:59PM EDT, Happy New Year! */
+  { RTC_ALARM_ABSOLUTE, .u.absolute = { 34, 12, 1, 3, 31, 86399000 } }
+};
+
+static rtcalarm_t alarm_id = 1;
+
 void rtc_cb(RTCDriver *rtcp, rtcevent_t event) {
 
   (void)rtcp;
@@ -28,19 +40,13 @@ void rtc_cb(RTCDriver *rtcp, rtcevent_t event) {
     break;
   case RTC_EVENT_ALARM:
     palTogglePad(GPIOB, 18);    // Red LED
+    rtcSetAlarm(&RTCD1, alarm_id, alarmspec2);
     break;
   case RTC_EVENT_OVERFLOW:
     palTogglePad(GPIOD, 1);     // Blue LED
     break;
   }
 }
-
-static const RTCAlarm alarmspec[1] = {
-  /* 12/31/2014 @ 23:59:59 UTC - Happy New Year! */
-  { 1420070399 }
-};
-
-static rtcalarm_t alarm = 1;
 
 /*
  * Application entry point.
@@ -66,7 +72,21 @@ int main(void) {
   /* The RTC is output on the RTC_CLKOUT pin. */
   SIM->SOPT2 &= ~SIM_SOPT2_RTCCLKOUTSEL;
 
-  rtcSetAlarm(&RTCD1, alarm, alarmspec);
+  /* 10th September 2014, 11:44:37AM EST */
+  RTCDateTime then = { 34, 9, 0, 3, 10, 4227700 };
+  rtcSetTime(&RTCD1, &then);
+
+  chThdSleepMilliseconds(3000);
+
+  RTCDateTime now;
+  rtcGetTime(&RTCD1, &now);
+
+  uint32_t delta = now.millisecond -  then.millisecond;
+  if (delta != 3000) {
+    palTogglePad(GPIOD, 1);     // Blue LED
+  }
+
+  rtcSetAlarm(&RTCD1, alarm_id, alarmspec1);
   rtcSetCallback(&RTCD1, rtc_cb);
 
   while (1) {

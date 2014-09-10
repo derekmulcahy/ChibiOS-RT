@@ -81,3 +81,4 @@
 #define KINETIS_RTCCLK                        TRUE
 #define KINETIS_RTC_ALARM_IRQ_PRIORITY        13
 #define KINETIS_RTC_SECONDS_IRQ_PRIORITY      13
+#define KINETIS_RTC_HAS_32KHZ_CRYSTAL         FALSE

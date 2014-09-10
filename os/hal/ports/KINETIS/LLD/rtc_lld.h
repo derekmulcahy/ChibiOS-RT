@@ -1,5 +1,5 @@
 /*
-    ChibiOS/HAL - Copyright (C) 2006-2014 Giovanni Di Sirio
+    ChibiOS/HAL - Copyright (C) 2014 Derek Mulcahy
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -102,10 +102,26 @@ typedef uint32_t rtcalarm_t;
  * @brief   Type of an RTC event.
  */
 typedef enum {
-  RTC_EVENT_SECOND = 0,                 /** Triggered every second.         */
-  RTC_EVENT_ALARM = 1,                  /** Triggered on alarm.             */
-  RTC_EVENT_OVERFLOW = 2                /** Triggered on counter overflow.  */
+  RTC_EVENT_SECOND = 0,             /** Triggered every second.          */
+  RTC_EVENT_ALARM = 1,              /** Triggered on alarm.              */
+  RTC_EVENT_OVERFLOW = 2            /** Triggered on counter overflow.   */
 } rtcevent_t;
+
+/**
+ * @brief   State of the RTC device.
+ */
+typedef enum {
+  RTC_STOPPED = 0,                  /** The RTC is stopped.              */
+  RTC_STARTED = 1                   /** The RTC is started.              */
+} rtcstate_t;
+
+/**
+ * @brief   State of the RTC device.
+ */
+typedef enum {
+  RTC_ALARM_DELTA    = 0,           /** Alarm is delata from current time.*/
+  RTC_ALARM_ABSOLUTE = 1            /** Alarm is absolute DateTime        */
+} rtcalarmtype_t;
 
 /**
  * @brief   Type of a generic RTC callback.
@@ -123,23 +139,20 @@ struct RTCCallbackConfig{
 };
 
 /**
- * @brief   Structure representing an RTC time stamp.
- */
-struct RTCTime {
-  /**
-   * @brief Seconds since UNIX epoch.
-   */
-  uint32_t          tv_sec;
-};
-
-/**
  * @brief   Structure representing an RTC alarm time stamp.
  */
 struct RTCAlarm {
-  /**
-   * @brief Seconds since UNIX epoch.
-   */
-  uint32_t          tv_sec;
+  rtcalarmtype_t    type;
+  union {
+    /**
+     * @brief Offset from current time.
+     */
+    uint32_t          delta;
+    /**
+     * @brief Absolute time.
+     */
+    RTCDateTime       absolute;
+  } u;
 };
 
 /**
@@ -150,6 +163,10 @@ struct RTCDriver {
    * @brief Callback pointer.
    */
   rtccb_t           callback;
+  /**
+   * @brief State
+   */
+  rtcstate_t        state;
 };
 
 /*===========================================================================*/
