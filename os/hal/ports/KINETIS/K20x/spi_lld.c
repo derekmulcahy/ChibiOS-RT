@@ -30,6 +30,19 @@
 /* Driver local definitions.                                                 */
 /*===========================================================================*/
 
+/*
+ * Enable a mode which enables receive interrupts when we have no
+ * receive buffer. The alternative is to ignore received bytes
+ * when we do not have a buffer to store them.
+ */
+#define TEST_ALWAYS_RECEIVE     TRUE
+
+/*
+ * Transmit just one byte per interrupt. The alternative is to fill the
+ * transmit fifo to the limit. This may result in receive overflows.
+ */
+#define TEST_TRANSMIT_ONE       TRUE
+
 /*===========================================================================*/
 /* Driver exported variables.                                                */
 /*===========================================================================*/
@@ -63,10 +76,17 @@ static void spi_start_xfer(SPIDriver *spip, bool polling)
   /* If we are not polling then enable interrupts */
   if (!polling) {
 
+#if TEST_ALWAYS_RECEIVE
     /* Enable transmit fill, receive and end of queue interrupts */
     spip->spi->RSER = SPIx_RSER_TFFF_RE | SPIx_RSER_RFDF_RE |
         SPIx_RSER_EOQF_RE;
-
+#else
+    /* Enable transmit fill and end of queue interrupts */
+    spip->spi->RSER = SPIx_RSER_TFFF_RE | SPIx_RSER_EOQF_RE;
+    /* Only generate receive interrupts when we have a receive buffer */
+    if (spip->rxbuf)
+      spip->spi->RSER |= SPIx_RSER_RFDF_RE;
+#endif /* TEST_ALWAYS_RECEIVE */
   }
 }
 
@@ -97,7 +117,11 @@ OSAL_IRQ_HANDLER(Vector70) {
   uint32_t sr = spip->spi->SR;
 
   /* Handle Receive FIFO Drain interrupt */
+#if TEST_ALWAYS_RECEIVE
   if (sr & SPIx_SR_RFDF) {
+#else
+  if (spip->rxbuf && (sr & SPIx_SR_RFDF)) {
+#endif /* TEST_ALWAYS_RECEIVE */
 
     /* Pop the data out of the fifo */
     uint8_t data = spip->spi->POPR;
@@ -122,8 +146,11 @@ OSAL_IRQ_HANDLER(Vector70) {
   }
 
   /* Handle Transmit FIFO Fill interrupt */
+#if TEST_TRANSMIT_ONE
   if (sr & SPIx_SR_TFFF) {
-
+#else
+    while ((spip->nbytes != spip->txidx) && (sr & SPIx_SR_TFFF)) {
+#endif
     /* The data to send is either the next tx byte or a filler byte */
     uint8_t data = spip->txbuf ? spip->txbuf[spip->txidx] : 0x00;
 
@@ -137,6 +164,11 @@ OSAL_IRQ_HANDLER(Vector70) {
 
     /* Clear the Transmit FIFO Fill Flag */
     spip->spi->SR = SPIx_SR_TFFF;
+
+#if !TEST_TRANSMIT_ONE
+    /* Reload the Status Register */
+    sr = spip->spi->SR;
+#endif
   }
 
   OSAL_IRQ_EPILOGUE();
@@ -365,7 +397,7 @@ uint16_t spi_lld_polled_exchange(SPIDriver *spip, uint16_t frame) {
 
   spi_start_xfer(spip, true);
 
-  spip->spi->PUSHR = SPIx_PUSHR_PCS(0x10) | SPIx_PUSHR_TXDATA(frame);
+  spip->spi->PUSHR = SPIx_PUSHR_PCS(spip->config->pcs) | SPIx_PUSHR_TXDATA(frame);
 
   while ((spip->spi->SR & SPIx_SR_RFDF) == 0)
     ;
