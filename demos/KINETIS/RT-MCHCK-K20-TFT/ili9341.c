@@ -135,8 +135,8 @@ void clearDisplay(SPIDriver *spip, uint16_t color) {
   }
 }
 
-void ILI9341_init(SPIDriver *spip)
-{
+void ILI9341_init(SPIDriver *spip) {
+
   palSetPad(GPIOD, 0);
   chThdSleepMilliseconds(5);
   palClearPad(GPIOD, 0);

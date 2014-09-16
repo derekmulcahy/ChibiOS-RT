@@ -14,6 +14,13 @@
     limitations under the License.
 */
 
+/*
+ * TODO: 16 bit data
+ *       Allow selection of top bits of PUSHR (PCS, TAR) per transaction.
+ *       DMA for receive.
+ *       DMA for transmit.
+ */
+
 /**
  * @file    KINETIS/spi_lld.c
  * @brief   KINETIS SPI subsystem low level driver source.
