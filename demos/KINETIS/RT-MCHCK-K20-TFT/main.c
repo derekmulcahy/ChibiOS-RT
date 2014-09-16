@@ -17,6 +17,13 @@
 #include "ch.h"
 #include "hal.h"
 
+#define USE_UGFX    FALSE
+#if USE_UGFX
+#include "gfx.h"
+#else
+#include "ili9341.h"
+#endif
+
 void spicb(SPIDriver *spip) {
 
   (void)spip;
@@ -34,31 +41,8 @@ static const SPIConfig spi1cfg = {
   KINETIS_SPI_PCS4,
   GPIOC,
   0,
-  KINETIS_SPI_TAR_8BIT_SLOW
+  KINETIS_SPI_TAR_8BIT_FAST
 };
-
-static THD_WORKING_AREA(waThread1, 64);
-static THD_FUNCTION(Thread1, arg) {
-  static uint8_t txbuf[5];
-  static uint8_t rxbuf[5];
-
-  (void)arg;
-  chRegSetThreadName("Blinker");
-  while (TRUE) {
-    palSetPad(GPIOB, GPIOB_LED);
-
-    /* Send the Manufacturer and Device ID Read command */
-    txbuf[0] = 0x9F;
-
-    spiSelect(&SPID1);
-    spiExchange(&SPID1, sizeof(txbuf), txbuf, rxbuf);
-    spiUnselect(&SPID1);
-
-    chThdSleepMilliseconds(1000);
-  }
-
-  return 0;
-}
 
 /*
  * Application entry point.
@@ -79,22 +63,81 @@ int main(void) {
    * Activates SPID1. Slave select is configured on GPIOC pin 0. This is
    * PCS4 for the KINETIS DSPI managed slave select.
    */
-  palSetPadMode(GPIOC, 5, PAL_MODE_ALTERNATIVE_2);  /* SCK  */
-  palSetPadMode(GPIOC, 6, PAL_MODE_ALTERNATIVE_2);  /* MOSI */
-  palSetPadMode(GPIOD, 3, PAL_MODE_ALTERNATIVE_2);  /* MISO */
-  palSetPadMode(GPIOC, 0, PAL_MODE_ALTERNATIVE_2);  /* SS   */
+  palSetPadMode(GPIOC, 5, PAL_MODE_ALTERNATIVE_2);      /* SCK  */
+  palSetPadMode(GPIOC, 6, PAL_MODE_ALTERNATIVE_2);      /* MOSI */
+  palSetPadMode(GPIOD, 3, PAL_MODE_ALTERNATIVE_2);      /* MISO */
+  palSetPadMode(GPIOC, 0, PAL_MODE_ALTERNATIVE_2);      /* SS   */
+  palSetPadMode(GPIOD, 0, PAL_MODE_OUTPUT_PUSHPULL);    /* RESET   */
+  palSetPadMode(GPIOD, 1, PAL_MODE_OUTPUT_PUSHPULL);    /* D/C   */
 
   /*
    *  Initializes the SPI driver 1.
    */
   spiStart(&SPID1, &spi1cfg);
 
-  /*
-   * Creates the blinker threads.
-   */
-  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
+#if USE_UGFX
+  gfxInit();
+#else
+  ILI9341_init(&SPID1);
+#endif
 
   while (1) {
-    chThdSleepMilliseconds(500);
+#if USE_UGFX
+    gdispClear(Red);
+//    chThdSleepMilliseconds(500);
+    gdispClear(Green);
+//    chThdSleepMilliseconds(500);
+    gdispClear(Blue);
+//    chThdSleepMilliseconds(500);
+#else
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+    clearDisplay(&SPID1, 0x07C0);
+    clearDisplay(&SPID1, 0x003F);
+    clearDisplay(&SPID1, 0xF800);
+#endif
   }
 }
