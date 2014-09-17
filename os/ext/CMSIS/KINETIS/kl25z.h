@@ -20,6 +20,7 @@
  * SOFTWARE.
  */
 
+#define _KL25Z_H_
 #ifndef _KL25Z_H_
 #define _KL25Z_H_
 

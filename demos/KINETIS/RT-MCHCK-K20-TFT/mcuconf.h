@@ -63,3 +63,4 @@
  */
 #define KINETIS_SPI_USE_SPI0                TRUE
 #define KINETIS_SPI_SPI0_IRQ_PRIORITY       8
+#define KINETIS_SPI_DMA0_IRQ_PRIORITY       8

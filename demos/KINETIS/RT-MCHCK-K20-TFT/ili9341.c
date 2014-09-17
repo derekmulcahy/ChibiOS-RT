@@ -129,8 +129,6 @@ void clearDisplay(SPIDriver *spip, uint16_t color) {
     color, color, color, color, color, color, color, color,
   };
   for (uint32_t i = 0; i < ((240 * 320) / (sizeof(c) / 2)) ; i++) {
-//    spi_lld_polled_exchange(spip, color >> 8);
-//    spi_lld_polled_exchange(spip, color & 0xFF);
     spiSend(spip, sizeof(c), c);
   }
 }
@@ -154,4 +152,12 @@ void ILI9341_init(SPIDriver *spip) {
   send_command(spip, ILI9341_SLPOUT);    // Exit Sleep
   chThdSleepMilliseconds(120);
   send_command(spip, ILI9341_DISPON);    // Display on
+}
+
+
+void ILI9341_identification(SPIDriver *spip) {
+  send_command(spip, 0x04);
+  uint8_t tx[4];
+  uint8_t rx[4];
+  spiExchange(spip,4,tx,rx);
 }

@@ -198,7 +198,7 @@ typedef struct  {
     uint16_t CITER_ELINKNO;   /* TCD Current Minor Loop Link, Major Loop Count (Channel Linking Disabled)  */
     uint16_t CITER_ELINKYES;  /* TCD Current Minor Loop Link, Major Loop Count (Channel Linking Enabled)  */
   };
-  uint32_t DLAST_SGA;         /* TCD Last Destination Address Adjustment/Scatter Gather Address */
+  uint32_t DLASTSGA;          /* TCD Last Destination Address Adjustment/Scatter Gather Address */
   uint16_t CSR;               /* TCD Control and Status */
   union {
     uint16_t BITER_ELINKNO;   /* TCD Beginning Minor Loop Link, Major Loop Count (Channel Linking Disabled) */

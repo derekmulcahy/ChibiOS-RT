@@ -81,6 +81,8 @@ int main(void) {
   ILI9341_init(&SPID1);
 #endif
 
+  volatile systime_t start = chVTGetSystemTime();
+
   while (1) {
 #if USE_UGFX
     gdispClear(Red);
@@ -90,6 +92,11 @@ int main(void) {
     gdispClear(Blue);
 //    chThdSleepMilliseconds(500);
 #else
+
+    volatile systime_t delta = chVTTimeElapsedSinceX(start);
+    (void)delta;
+    start = chVTGetSystemTime();
+
     clearDisplay(&SPID1, 0x07C0);
     clearDisplay(&SPID1, 0x003F);
     clearDisplay(&SPID1, 0xF800);

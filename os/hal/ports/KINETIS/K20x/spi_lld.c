@@ -48,7 +48,14 @@
  * Transmit just one byte per interrupt. The alternative is to fill the
  * transmit fifo to the limit. This may result in receive overflows.
  */
-#define TEST_TRANSMIT_ONE       TRUE
+#define TEST_TRANSMIT_ONE       FALSE
+
+/*
+ * Receive using DMA.
+ */
+#define TEST_SPI_RX_DMA         TRUE
+#define SPI0_DMAMUX_CHANNEL     0
+#define SPI0_DMA_RX_CHANNEL     0
 
 /*===========================================================================*/
 /* Driver exported variables.                                                */
@@ -67,8 +74,12 @@ SPIDriver SPID1;
 /* Driver local functions.                                                   */
 /*===========================================================================*/
 
+volatile uint8_t rxDummy;
+
 static void spi_start_xfer(SPIDriver *spip, bool polling)
 {
+  volatile DMA_TypeDef *dma = DMA;
+
   /*
    * Enable the DSPI peripheral in master mode.
    * On receive overflow, new data will overwrite old data.
@@ -83,17 +94,26 @@ static void spi_start_xfer(SPIDriver *spip, bool polling)
   /* If we are not polling then enable interrupts */
   if (!polling) {
 
-#if TEST_ALWAYS_RECEIVE
-    /* Enable transmit fill, receive and end of queue interrupts */
+    /* Enable transmit fill, receive, receive and end of queue interrupts */
     spip->spi->RSER = SPIx_RSER_TFFF_RE | SPIx_RSER_RFDF_RE |
         SPIx_RSER_EOQF_RE;
-#else
-    /* Enable transmit fill and end of queue interrupts */
-    spip->spi->RSER = SPIx_RSER_TFFF_RE | SPIx_RSER_EOQF_RE;
-    /* Only generate receive interrupts when we have a receive buffer */
-    if (spip->rxbuf)
-      spip->spi->RSER |= SPIx_RSER_RFDF_RE;
-#endif /* TEST_ALWAYS_RECEIVE */
+
+#if TEST_SPI_RX_DMA
+    /* Select DMA interrupt request instead of SPI0 interrupt request */
+    spip->spi->RSER |= SPIx_RSER_RFDF_DIRS;
+
+    rxDummy = 42;
+
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].DADDR = (uint32_t)(spip->rxbuf ? spip->rxbuf : &rxDummy);
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].DOFF = spip->rxbuf ? 1 : 0;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].NBYTES_MLNO = spip->nbytes;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].SLAST = -spip->nbytes;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].BITER_ELINKNO = 1;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].CITER_ELINKNO = 1;
+
+    /* Set bit 0 in Enable Request Register (ERQ) by writing 0 to SERQ */
+    DMA->SERQ = SPI0_DMA_RX_CHANNEL;
+#endif /* TEST_SPI_RX_DMA */
   }
 }
 
@@ -120,12 +140,13 @@ static void spi_stop_xfer(SPIDriver *spip)
 OSAL_IRQ_HANDLER(Vector70) {
   OSAL_IRQ_PROLOGUE();
 
+  volatile DMA_TypeDef *dma = DMA;
   SPIDriver *spip = &SPID1;
-  uint32_t sr = spip->spi->SR;
+  vuint32_t sr = spip->spi->SR;
 
   /* Handle Receive FIFO Drain interrupt */
 #if TEST_ALWAYS_RECEIVE
-  if (sr & SPIx_SR_RFDF) {
+  while (spip->rxidx < spip->nbytes && (sr & SPIx_SR_RFDF)) {
 #else
   if (spip->rxbuf && (sr & SPIx_SR_RFDF)) {
 #endif /* TEST_ALWAYS_RECEIVE */
@@ -136,10 +157,16 @@ OSAL_IRQ_HANDLER(Vector70) {
     /* If we have an rxbuf and it has space then store the data */
     if (spip->rxbuf && spip->rxidx < spip->nbytes) {
       spip->rxbuf[spip->rxidx++] = data;
+    } else {
+      spip->rxidx++;
     }
 
     /* Clear the Receive FIFO Drain Flag */
     spip->spi->SR = SPIx_SR_RFDF;
+
+#if TEST_ALWAYS_RECEIVE
+    sr = spip->spi->SR;
+#endif
   }
 
   /* Handle End of Queue interrupt */
@@ -162,10 +189,10 @@ OSAL_IRQ_HANDLER(Vector70) {
     uint8_t data = spip->txbuf ? spip->txbuf[spip->txidx] : 0x00;
 
     /* Calculate the number of bytes remaining and increment the index */
-    size_t n = spip->nbytes - spip->txidx++;
+    size_t remaining = spip->nbytes - spip->txidx++;
 
     /* Push the data into the FIFO, CONT if more bytes, EOQ if last byte */
-    spip->spi->PUSHR = (n > 1 ? SPIx_PUSHR_CONT : SPIx_PUSHR_EOQ) |
+    spip->spi->PUSHR = (remaining > 1 ? SPIx_PUSHR_CONT : SPIx_PUSHR_EOQ) |
         SPIx_PUSHR_PCS(spip->config->pcs) |
         SPIx_PUSHR_TXDATA(data);
 
@@ -181,6 +208,18 @@ OSAL_IRQ_HANDLER(Vector70) {
   OSAL_IRQ_EPILOGUE();
 }
 
+OSAL_IRQ_HANDLER(Vector40) {
+  OSAL_IRQ_PROLOGUE();
+
+  volatile DMA_TypeDef *dma = DMA;
+  volatile SPIDriver *spip = &SPID1;
+
+  /* Clear bit 0 in Interrupt Request Register (INT) by writing 0 to CINT */
+  DMA->CINT = SPI0_DMA_RX_CHANNEL;
+
+  OSAL_IRQ_EPILOGUE();
+}
+
 /*===========================================================================*/
 /* Driver exported functions.                                                */
 /*===========================================================================*/
@@ -191,9 +230,6 @@ OSAL_IRQ_HANDLER(Vector70) {
  * @notapi
  */
 void spi_lld_init(void) {
-
-  nvicEnableVector(SPI0_IRQn, KINETIS_SPI_SPI0_IRQ_PRIORITY);
-
 #if KINETIS_SPI_USE_SPI0
   spiObjectInit(&SPID1);
 #endif
@@ -215,6 +251,8 @@ void spi_lld_start(SPIDriver *spip) {
 #if KINETIS_SPI_USE_SPI0
     if (&SPID1 == spip) {
 
+      nvicEnableVector(SPI0_IRQn, KINETIS_SPI_SPI0_IRQ_PRIORITY);
+
       /* Enable the clock for SPI0 */
       SIM->SCGC6 |= SIM_SCGC6_SPI0;
 
@@ -229,6 +267,33 @@ void spi_lld_start(SPIDriver *spip) {
       spip->spi->CTAR[1] = KINETIS_SPI_TAR1_DEFAULT;
     }
 #endif
+
+#if TEST_SPI_RX_DMA
+    nvicEnableVector(DMA0_IRQn, KINETIS_SPI_DMA0_IRQ_PRIORITY);
+
+    SIM->SCGC6 |= SIM_SCGC6_DMAMUX;
+    SIM->SCGC7 |= SIM_SCGC7_DMA;
+
+    volatile DMA_TypeDef *dma = DMA;
+
+    /* Clear DMA error flags and DMAMUX channel configurations. */
+    DMA->ERR = 0x0F;
+
+    // enable requests
+    // Rx, select SPI Rx FIFO
+    DMAMUX->CHCFG[SPI0_DMAMUX_CHANNEL] = DMAMUX_CHCFGn_ENBL | DMAMUX_CHCFGn_SOURCE(16);
+
+    // configure DMA mux, RX
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].SADDR = (uint32_t)&SPI0->POPR;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].SOFF = 0;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].ATTR = DMA_ATTR_SSIZE(0) | DMA_ATTR_DSIZE(0);
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].BITER_ELINKNO = 1;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].CITER_ELINKNO = 1;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].SLAST = 0;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].DLASTSGA = 0;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].CSR = DMA_CSR_DREQ_MASK | DMA_CSR_INTMAJOR_MASK;
+#endif
+
   }
 
   /* SPI setup and enable.*/
@@ -246,8 +311,12 @@ void spi_lld_stop(SPIDriver *spip) {
   /* If in ready state then disables the SPI clock.*/
   if (spip->state == SPI_READY) {
 
-    /* Disable the clock for SPI0 */
-    SIM->SCGC6 &= ~SIM_SCGC6_SPI0;
+#if TEST_SPI_RX_DMA
+    SIM->SCGC6 &= ~SIM_SCGC6_DMAMUX;
+    SIM->SCGC7 &= ~SIM_SCGC7_DMA;
+
+    nvicDisableVector(DMA0_IRQn);
+#endif
 
 #if KINETIS_SPI_USE_SPI0
     if (&SPID1 == spip) {
@@ -255,6 +324,11 @@ void spi_lld_stop(SPIDriver *spip) {
       spip->spi->MCR |= SPIx_MCR_HALT;
     }
 #endif
+
+    nvicDisableVector(SPI0_IRQn);
+
+    /* Disable the clock for SPI0 */
+    SIM->SCGC6 &= ~SIM_SCGC6_SPI0;
   }
 }
 
