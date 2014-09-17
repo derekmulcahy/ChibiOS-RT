@@ -38,22 +38,8 @@
 /*===========================================================================*/
 
 /*
- * Enable a mode which enables receive interrupts when we have no
- * receive buffer. The alternative is to ignore received bytes
- * when we do not have a buffer to store them.
- */
-#define TEST_ALWAYS_RECEIVE     TRUE
-
-/*
- * Transmit just one byte per interrupt. The alternative is to fill the
- * transmit fifo to the limit. This may result in receive overflows.
- */
-#define TEST_TRANSMIT_ONE       FALSE
-
-/*
  * Receive using DMA.
  */
-#define TEST_SPI_RX_DMA         TRUE
 #define SPI0_DMAMUX_CHANNEL     0
 #define SPI0_DMA_RX_CHANNEL     0
 
@@ -78,7 +64,7 @@ volatile uint8_t rxDummy;
 
 static void spi_start_xfer(SPIDriver *spip, bool polling)
 {
-  volatile DMA_TypeDef *dma = DMA;
+  DMA_TypeDef *dma = DMA; (void)dma;
 
   /*
    * Enable the DSPI peripheral in master mode.
@@ -96,24 +82,25 @@ static void spi_start_xfer(SPIDriver *spip, bool polling)
 
     /* Enable transmit fill, receive, receive and end of queue interrupts */
     spip->spi->RSER = SPIx_RSER_TFFF_RE | SPIx_RSER_RFDF_RE |
-        SPIx_RSER_EOQF_RE;
-
-#if TEST_SPI_RX_DMA
-    /* Select DMA interrupt request instead of SPI0 interrupt request */
-    spip->spi->RSER |= SPIx_RSER_RFDF_DIRS;
+        SPIx_RSER_RFDF_DIRS;
 
     rxDummy = 42;
 
+    // configure DMA mux, RX
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].SADDR = (uint32_t)&SPI0->POPR;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].SOFF = 0;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].SLAST = 0;
     DMA->TCD[SPI0_DMA_RX_CHANNEL].DADDR = (uint32_t)(spip->rxbuf ? spip->rxbuf : &rxDummy);
     DMA->TCD[SPI0_DMA_RX_CHANNEL].DOFF = spip->rxbuf ? 1 : 0;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].NBYTES_MLNO = spip->nbytes;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].SLAST = -spip->nbytes;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].BITER_ELINKNO = 1;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].CITER_ELINKNO = 1;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].DLASTSGA = 0;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].ATTR = DMA_ATTR_SSIZE(0) | DMA_ATTR_DSIZE(0);
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].NBYTES_MLNO = 1;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].BITER_ELINKNO = spip->nbytes;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].CITER_ELINKNO = spip->nbytes;
+    DMA->TCD[SPI0_DMA_RX_CHANNEL].CSR = DMA_CSR_DREQ_MASK | DMA_CSR_INTMAJOR_MASK;
 
     /* Set bit 0 in Enable Request Register (ERQ) by writing 0 to SERQ */
     DMA->SERQ = SPI0_DMA_RX_CHANNEL;
-#endif /* TEST_SPI_RX_DMA */
   }
 }
 
@@ -140,69 +127,32 @@ static void spi_stop_xfer(SPIDriver *spip)
 OSAL_IRQ_HANDLER(Vector70) {
   OSAL_IRQ_PROLOGUE();
 
-  volatile DMA_TypeDef *dma = DMA;
+  DMA_TypeDef *dma = DMA; (void)dma;
   SPIDriver *spip = &SPID1;
   vuint32_t sr = spip->spi->SR;
 
-  /* Handle Receive FIFO Drain interrupt */
-#if TEST_ALWAYS_RECEIVE
-  while (spip->rxidx < spip->nbytes && (sr & SPIx_SR_RFDF)) {
-#else
-  if (spip->rxbuf && (sr & SPIx_SR_RFDF)) {
-#endif /* TEST_ALWAYS_RECEIVE */
-
-    /* Pop the data out of the fifo */
-    uint8_t data = spip->spi->POPR;
-
-    /* If we have an rxbuf and it has space then store the data */
-    if (spip->rxbuf && spip->rxidx < spip->nbytes) {
-      spip->rxbuf[spip->rxidx++] = data;
-    } else {
-      spip->rxidx++;
-    }
-
-    /* Clear the Receive FIFO Drain Flag */
-    spip->spi->SR = SPIx_SR_RFDF;
-
-#if TEST_ALWAYS_RECEIVE
-    sr = spip->spi->SR;
-#endif
-  }
-
-  /* Handle End of Queue interrupt */
-  if (sr & SPIx_SR_EOQF) {
-
-    spip->spi->SR = SPIx_SR_EOQF;
-
-    spi_stop_xfer(spip);
-
-    _spi_isr_code(spip);
-  }
-
-  /* Handle Transmit FIFO Fill interrupt */
-#if TEST_TRANSMIT_ONE
-  if (sr & SPIx_SR_TFFF) {
-#else
-    while ((spip->nbytes != spip->txidx) && (sr & SPIx_SR_TFFF)) {
-#endif
+  /* Handle Transmit TX FIFO Fill interrupt, DMA empties the RX FIFO */
+  while ((spip->nbytes != spip->txidx) && (sr & SPIx_SR_TFFF)) {
     /* The data to send is either the next tx byte or a filler byte */
     uint8_t data = spip->txbuf ? spip->txbuf[spip->txidx] : 0x00;
 
     /* Calculate the number of bytes remaining and increment the index */
     size_t remaining = spip->nbytes - spip->txidx++;
 
-    /* Push the data into the FIFO, CONT if more bytes, EOQ if last byte */
-    spip->spi->PUSHR = (remaining > 1 ? SPIx_PUSHR_CONT : SPIx_PUSHR_EOQ) |
+    /* Push the data into the FIFO, CONT keeps CS active */
+    spip->spi->PUSHR = SPIx_PUSHR_CONT |
         SPIx_PUSHR_PCS(spip->config->pcs) |
         SPIx_PUSHR_TXDATA(data);
+
+    /* For the last byte, disable TX FIFO Fill */
+    if (remaining == 1)
+      spip->spi->RSER &= ~SPIx_RSER_TFFF_RE;
 
     /* Clear the Transmit FIFO Fill Flag */
     spip->spi->SR = SPIx_SR_TFFF;
 
-#if !TEST_TRANSMIT_ONE
     /* Reload the Status Register */
     sr = spip->spi->SR;
-#endif
   }
 
   OSAL_IRQ_EPILOGUE();
@@ -211,11 +161,15 @@ OSAL_IRQ_HANDLER(Vector70) {
 OSAL_IRQ_HANDLER(Vector40) {
   OSAL_IRQ_PROLOGUE();
 
-  volatile DMA_TypeDef *dma = DMA;
-  volatile SPIDriver *spip = &SPID1;
+  DMA_TypeDef *dma = DMA; (void)dma;
+  SPIDriver *spip = &SPID1;
 
   /* Clear bit 0 in Interrupt Request Register (INT) by writing 0 to CINT */
   DMA->CINT = SPI0_DMA_RX_CHANNEL;
+
+  spi_stop_xfer(spip);
+
+  _spi_isr_code(spip);
 
   OSAL_IRQ_EPILOGUE();
 }
@@ -268,13 +222,12 @@ void spi_lld_start(SPIDriver *spip) {
     }
 #endif
 
-#if TEST_SPI_RX_DMA
     nvicEnableVector(DMA0_IRQn, KINETIS_SPI_DMA0_IRQ_PRIORITY);
 
     SIM->SCGC6 |= SIM_SCGC6_DMAMUX;
     SIM->SCGC7 |= SIM_SCGC7_DMA;
 
-    volatile DMA_TypeDef *dma = DMA;
+    DMA_TypeDef *dma = DMA; (void)dma;
 
     /* Clear DMA error flags and DMAMUX channel configurations. */
     DMA->ERR = 0x0F;
@@ -282,18 +235,6 @@ void spi_lld_start(SPIDriver *spip) {
     // enable requests
     // Rx, select SPI Rx FIFO
     DMAMUX->CHCFG[SPI0_DMAMUX_CHANNEL] = DMAMUX_CHCFGn_ENBL | DMAMUX_CHCFGn_SOURCE(16);
-
-    // configure DMA mux, RX
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].SADDR = (uint32_t)&SPI0->POPR;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].SOFF = 0;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].ATTR = DMA_ATTR_SSIZE(0) | DMA_ATTR_DSIZE(0);
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].BITER_ELINKNO = 1;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].CITER_ELINKNO = 1;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].SLAST = 0;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].DLASTSGA = 0;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].CSR = DMA_CSR_DREQ_MASK | DMA_CSR_INTMAJOR_MASK;
-#endif
-
   }
 
   /* SPI setup and enable.*/
@@ -380,7 +321,6 @@ void spi_lld_ignore(SPIDriver *spip, size_t n) {
 
   spip->nbytes = n;
   spip->rxbuf = NULL;
-  spip->rxidx = 0;
   spip->txbuf = NULL;
   spip->txidx = 0;
 
@@ -407,7 +347,6 @@ void spi_lld_exchange(SPIDriver *spip, size_t n,
 
   spip->nbytes = n;
   spip->rxbuf = rxbuf;
-  spip->rxidx = 0;
   spip->txbuf = txbuf;
   spip->txidx = 0;
 
@@ -431,7 +370,6 @@ void spi_lld_send(SPIDriver *spip, size_t n, const void *txbuf) {
 
   spip->nbytes = n;
   spip->rxbuf = NULL;
-  spip->rxidx = 0;
   spip->txbuf = (void *)txbuf;
   spip->txidx = 0;
 
@@ -455,7 +393,6 @@ void spi_lld_receive(SPIDriver *spip, size_t n, void *rxbuf) {
 
   spip->nbytes = n;
   spip->rxbuf = rxbuf;
-  spip->rxidx = 0;
   spip->txbuf = NULL;
   spip->txidx = 0;
 
