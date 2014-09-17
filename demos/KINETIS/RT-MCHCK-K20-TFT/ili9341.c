@@ -127,6 +127,14 @@ void clearDisplay(SPIDriver *spip, uint16_t color) {
     color, color, color, color, color, color, color, color,
     color, color, color, color, color, color, color, color,
     color, color, color, color, color, color, color, color,
+    color, color, color, color, color, color, color, color,
+    color, color, color, color, color, color, color, color,
+    color, color, color, color, color, color, color, color,
+    color, color, color, color, color, color, color, color,
+    color, color, color, color, color, color, color, color,
+    color, color, color, color, color, color, color, color,
+    color, color, color, color, color, color, color, color,
+    color, color, color, color, color, color, color, color,
   };
   for (uint32_t i = 0; i < ((240 * 320) / (sizeof(c) / 2)) ; i++) {
     spiSend(spip, sizeof(c), c);

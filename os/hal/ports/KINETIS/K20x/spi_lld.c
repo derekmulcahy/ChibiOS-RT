@@ -127,33 +127,28 @@ static void spi_stop_xfer(SPIDriver *spip)
 OSAL_IRQ_HANDLER(Vector70) {
   OSAL_IRQ_PROLOGUE();
 
-  DMA_TypeDef *dma = DMA; (void)dma;
   SPIDriver *spip = &SPID1;
-  vuint32_t sr = spip->spi->SR;
+  SPI_TypeDef *spi = spip->spi;
 
-  /* Handle Transmit TX FIFO Fill interrupt, DMA empties the RX FIFO */
-  while ((spip->nbytes != spip->txidx) && (sr & SPIx_SR_TFFF)) {
-    /* The data to send is either the next tx byte or a filler byte */
-    uint8_t data = spip->txbuf ? spip->txbuf[spip->txidx] : 0x00;
+  uint8_t *addr = (uint8_t *)&spip->txbuf[spip->txidx];
+  size_t n = spip->nbytes - spip->txidx;
+  uint32_t pushr = SPIx_PUSHR_CONT | SPIx_PUSHR_PCS(spip->config->pcs);
+  /* Fill the TX FIFO , DMA empties the RX FIFO */
+  do {
+    /* Push the data into the FIFO */
+    spi->PUSHR = pushr | SPIx_PUSHR_TXDATA(*addr++);
 
-    /* Calculate the number of bytes remaining and increment the index */
-    size_t remaining = spip->nbytes - spip->txidx++;
-
-    /* Push the data into the FIFO, CONT keeps CS active */
-    spip->spi->PUSHR = SPIx_PUSHR_CONT |
-        SPIx_PUSHR_PCS(spip->config->pcs) |
-        SPIx_PUSHR_TXDATA(data);
-
-    /* For the last byte, disable TX FIFO Fill */
-    if (remaining == 1)
-      spip->spi->RSER &= ~SPIx_RSER_TFFF_RE;
+    /* delay to allow the data to be transmitted */
+    asm("nop");
 
     /* Clear the Transmit FIFO Fill Flag */
-    spip->spi->SR = SPIx_SR_TFFF;
+    spi->SR = SPIx_SR_TFFF;
+  } while (--n && (spi->SR & SPIx_SR_TFFF));
 
-    /* Reload the Status Register */
-    sr = spip->spi->SR;
-  }
+  spip->txidx = spip->nbytes - n;
+  /* For the last byte, disable TX FIFO Fill */
+  if (n == 0)
+    spi->RSER &= ~SPIx_RSER_TFFF_RE;
 
   OSAL_IRQ_EPILOGUE();
 }
