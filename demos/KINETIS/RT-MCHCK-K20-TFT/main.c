@@ -41,7 +41,7 @@ static const SPIConfig spi1cfg = {
   KINETIS_SPI_PCS4,
   GPIOC,
   0,
-  KINETIS_SPI_TAR_8BIT_FAST
+  KINETIS_SPI_TAR_8BIT_FAST | SPIx_CTARn_ASC(0)
 };
 
 /*
@@ -66,9 +66,11 @@ int main(void) {
   palSetPadMode(GPIOC, 5, PAL_MODE_ALTERNATIVE_2);      /* SCK  */
   palSetPadMode(GPIOC, 6, PAL_MODE_ALTERNATIVE_2);      /* MOSI */
   palSetPadMode(GPIOD, 3, PAL_MODE_ALTERNATIVE_2);      /* MISO */
-  palSetPadMode(GPIOC, 0, PAL_MODE_ALTERNATIVE_2);      /* SS   */
+  palSetPadMode(GPIOC, 0, PAL_MODE_OUTPUT_PUSHPULL);    /* SS   */
   palSetPadMode(GPIOD, 0, PAL_MODE_OUTPUT_PUSHPULL);    /* RESET   */
   palSetPadMode(GPIOD, 1, PAL_MODE_OUTPUT_PUSHPULL);    /* D/C   */
+
+  palSetPad(GPIOC, 0);
 
   /*
    *  Initializes the SPI driver 1.

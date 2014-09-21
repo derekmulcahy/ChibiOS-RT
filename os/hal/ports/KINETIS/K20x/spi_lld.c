@@ -17,8 +17,6 @@
 /*
  * TODO: 16 bit data
  *       Allow selection of top bits of PUSHR (PCS, TAR) per transaction.
- *       DMA for receive.
- *       DMA for transmit.
  */
 
 /**
@@ -40,8 +38,10 @@
 /*
  * Receive using DMA.
  */
-#define SPI0_DMAMUX_CHANNEL     0
-#define SPI0_DMA_RX_CHANNEL     0
+#define SPI0_RX_DMAMUX_CHANNEL  0
+#define SPI0_RX_DMA_CHANNEL     0
+#define SPI0_TX_DMAMUX_CHANNEL  1
+#define SPI0_TX_DMA_CHANNEL     1
 
 /*===========================================================================*/
 /* Driver exported variables.                                                */
@@ -60,111 +60,83 @@ SPIDriver SPID1;
 /* Driver local functions.                                                   */
 /*===========================================================================*/
 
-volatile uint8_t rxDummy;
+volatile uint8_t dmaDummy;
 
 static void spi_start_xfer(SPIDriver *spip, bool polling)
 {
-  DMA_TypeDef *dma = DMA; (void)dma;
+  /* Assert CS */
+  palClearPad(spip->config->ssport, spip->config->sspad);
 
   /*
    * Enable the DSPI peripheral in master mode.
-   * On receive overflow, new data will overwrite old data.
-   * Set slave selects to be active low.
    * Clear the TX and RX FIFOs.
    * */
-  spip->spi->MCR = SPIx_MCR_MSTR |
-      SPIx_MCR_ROOE |
-      SPIx_MCR_PCSIS(KINETIS_SPI_PCS_ALL) |
-      SPIx_MCR_CLR_TXF | SPIx_MCR_CLR_RXF;
+  spip->spi->MCR = SPIx_MCR_MSTR | SPIx_MCR_CLR_TXF | SPIx_MCR_CLR_RXF;
 
   /* If we are not polling then enable interrupts */
   if (!polling) {
 
-    /* Enable transmit fill, receive, receive and end of queue interrupts */
+    /* Enable receive dma and transmit dma */
     spip->spi->RSER = SPIx_RSER_TFFF_RE | SPIx_RSER_RFDF_RE |
-        SPIx_RSER_RFDF_DIRS;
+        SPIx_RSER_RFDF_DIRS | SPIx_RSER_TFFF_DIRS;
 
-    rxDummy = 42;
+    dmaDummy = 0;
 
-    // configure DMA mux, RX
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].SADDR = (uint32_t)&SPI0->POPR;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].SOFF = 0;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].SLAST = 0;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].DADDR = (uint32_t)(spip->rxbuf ? spip->rxbuf : &rxDummy);
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].DOFF = spip->rxbuf ? 1 : 0;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].DLASTSGA = 0;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].ATTR = DMA_ATTR_SSIZE(0) | DMA_ATTR_DSIZE(0);
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].NBYTES_MLNO = 1;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].BITER_ELINKNO = spip->nbytes;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].CITER_ELINKNO = spip->nbytes;
-    DMA->TCD[SPI0_DMA_RX_CHANNEL].CSR = DMA_CSR_DREQ_MASK | DMA_CSR_INTMAJOR_MASK;
+    // configure RX DMA
+    if (spip->rxbuf) {
+      DMA->TCD[SPI0_RX_DMA_CHANNEL].DADDR = (uint32_t)spip->rxbuf;
+      DMA->TCD[SPI0_RX_DMA_CHANNEL].DOFF = 1;
+    } else {
+      DMA->TCD[SPI0_RX_DMA_CHANNEL].DADDR = (uint32_t)&dmaDummy;
+      DMA->TCD[SPI0_RX_DMA_CHANNEL].DOFF = 0;
+    }
+    DMA->TCD[SPI0_RX_DMA_CHANNEL].BITER_ELINKNO = spip->nbytes;
+    DMA->TCD[SPI0_RX_DMA_CHANNEL].CITER_ELINKNO = spip->nbytes;
 
     /* Set bit 0 in Enable Request Register (ERQ) by writing 0 to SERQ */
-    DMA->SERQ = SPI0_DMA_RX_CHANNEL;
+    DMA->SERQ = SPI0_RX_DMA_CHANNEL;
+
+    // configure TX DMA
+    if (spip->txbuf) {
+      DMA->TCD[SPI0_TX_DMA_CHANNEL].SADDR =  (uint32_t)spip->txbuf;
+      DMA->TCD[SPI0_TX_DMA_CHANNEL].SOFF = 1;
+    } else {
+      DMA->TCD[SPI0_TX_DMA_CHANNEL].SADDR =  (uint32_t)&dmaDummy;
+      DMA->TCD[SPI0_TX_DMA_CHANNEL].SOFF = 0;
+    }
+    DMA->TCD[SPI0_TX_DMA_CHANNEL].BITER_ELINKNO = spip->nbytes;
+    DMA->TCD[SPI0_TX_DMA_CHANNEL].CITER_ELINKNO = spip->nbytes;
+
+    /* Set bit 1 in Enable Request Register (ERQ) by writing 1 to SERQ */
+    DMA->SERQ = SPI0_TX_DMA_CHANNEL;
   }
 }
 
 static void spi_stop_xfer(SPIDriver *spip)
 {
   /* Halt the DSPI peripheral */
-  spip->spi->MCR = SPIx_MCR_MSTR |
-      SPIx_MCR_ROOE |
-      SPIx_MCR_PCSIS(KINETIS_SPI_PCS_ALL) |
-      SPIx_MCR_CLR_TXF | SPIx_MCR_CLR_RXF |
-      SPIx_MCR_HALT;
-
-  /* Clear all interrupt enables */
-  spip->spi->RSER = 0;
+  spip->spi->MCR = SPIx_MCR_MSTR | SPIx_MCR_HALT;
 
   /* Clear all the flags which are currently set. */
   spip->spi->SR |= spip->spi->SR;
+
+  /* Deassert CS */
+  palSetPad(spip->config->ssport, spip->config->sspad);
 }
 
 /*===========================================================================*/
 /* Driver interrupt handlers.                                                */
 /*===========================================================================*/
 
-OSAL_IRQ_HANDLER(Vector70) {
-  OSAL_IRQ_PROLOGUE();
-
-  SPIDriver *spip = &SPID1;
-  SPI_TypeDef *spi = spip->spi;
-
-  uint8_t *addr = (uint8_t *)&spip->txbuf[spip->txidx];
-  size_t n = spip->nbytes - spip->txidx;
-  uint32_t pushr = SPIx_PUSHR_CONT | SPIx_PUSHR_PCS(spip->config->pcs);
-  /* Fill the TX FIFO , DMA empties the RX FIFO */
-  do {
-    /* Push the data into the FIFO */
-    spi->PUSHR = pushr | SPIx_PUSHR_TXDATA(*addr++);
-
-    /* delay to allow the data to be transmitted */
-    asm("nop");
-
-    /* Clear the Transmit FIFO Fill Flag */
-    spi->SR = SPIx_SR_TFFF;
-  } while (--n && (spi->SR & SPIx_SR_TFFF));
-
-  spip->txidx = spip->nbytes - n;
-  /* For the last byte, disable TX FIFO Fill */
-  if (n == 0)
-    spi->RSER &= ~SPIx_RSER_TFFF_RE;
-
-  OSAL_IRQ_EPILOGUE();
-}
-
 OSAL_IRQ_HANDLER(Vector40) {
   OSAL_IRQ_PROLOGUE();
 
-  DMA_TypeDef *dma = DMA; (void)dma;
-  SPIDriver *spip = &SPID1;
-
   /* Clear bit 0 in Interrupt Request Register (INT) by writing 0 to CINT */
-  DMA->CINT = SPI0_DMA_RX_CHANNEL;
+  DMA->CINT = SPI0_RX_DMA_CHANNEL;
 
-  spi_stop_xfer(spip);
+  spi_stop_xfer(&SPID1);
 
-  _spi_isr_code(spip);
+  _spi_isr_code(&SPID1);
 
   OSAL_IRQ_EPILOGUE();
 }
@@ -182,7 +154,6 @@ void spi_lld_init(void) {
 #if KINETIS_SPI_USE_SPI0
   spiObjectInit(&SPID1);
 #endif
-
 }
 
 /**
@@ -200,8 +171,6 @@ void spi_lld_start(SPIDriver *spip) {
 #if KINETIS_SPI_USE_SPI0
     if (&SPID1 == spip) {
 
-      nvicEnableVector(SPI0_IRQn, KINETIS_SPI_SPI0_IRQ_PRIORITY);
-
       /* Enable the clock for SPI0 */
       SIM->SCGC6 |= SIM_SCGC6_SPI0;
 
@@ -212,8 +181,6 @@ void spi_lld_start(SPIDriver *spip) {
       } else {
         spip->spi->CTAR[0] = KINETIS_SPI_TAR0_DEFAULT;
       }
-
-      spip->spi->CTAR[1] = KINETIS_SPI_TAR1_DEFAULT;
     }
 #endif
 
@@ -222,17 +189,33 @@ void spi_lld_start(SPIDriver *spip) {
     SIM->SCGC6 |= SIM_SCGC6_DMAMUX;
     SIM->SCGC7 |= SIM_SCGC7_DMA;
 
-    DMA_TypeDef *dma = DMA; (void)dma;
-
-    /* Clear DMA error flags and DMAMUX channel configurations. */
+    /* Clear DMA error flags */
     DMA->ERR = 0x0F;
 
-    // enable requests
-    // Rx, select SPI Rx FIFO
-    DMAMUX->CHCFG[SPI0_DMAMUX_CHANNEL] = DMAMUX_CHCFGn_ENBL | DMAMUX_CHCFGn_SOURCE(16);
-  }
+    /* Rx, select SPI Rx FIFO */
+    DMAMUX->CHCFG[SPI0_RX_DMAMUX_CHANNEL] = DMAMUX_CHCFGn_ENBL | DMAMUX_CHCFGn_SOURCE(16);
 
-  /* SPI setup and enable.*/
+    /* Tx, select SPI Tx FIFO */
+    DMAMUX->CHCFG[SPI0_TX_DMAMUX_CHANNEL] = DMAMUX_CHCFGn_ENBL | DMAMUX_CHCFGn_SOURCE(17);
+
+    /* configure DMA RX fixed values */
+    DMA->TCD[SPI0_RX_DMA_CHANNEL].SADDR = (uint32_t)&SPI0->POPR;
+    DMA->TCD[SPI0_RX_DMA_CHANNEL].SOFF = 0;
+    DMA->TCD[SPI0_RX_DMA_CHANNEL].SLAST = 0;
+    DMA->TCD[SPI0_RX_DMA_CHANNEL].DLASTSGA = 0;
+    DMA->TCD[SPI0_RX_DMA_CHANNEL].ATTR = DMA_ATTR_SSIZE(0) | DMA_ATTR_DSIZE(0);
+    DMA->TCD[SPI0_RX_DMA_CHANNEL].NBYTES_MLNO = 1;
+    DMA->TCD[SPI0_RX_DMA_CHANNEL].CSR = DMA_CSR_DREQ_MASK | DMA_CSR_INTMAJOR_MASK;
+
+    /* configure DMA TX fixed values */
+    DMA->TCD[SPI0_TX_DMA_CHANNEL].SLAST = 0;
+    DMA->TCD[SPI0_TX_DMA_CHANNEL].DADDR = (uint32_t)&SPI0->PUSHR;
+    DMA->TCD[SPI0_TX_DMA_CHANNEL].DOFF = 0;
+    DMA->TCD[SPI0_TX_DMA_CHANNEL].DLASTSGA = 0;
+    DMA->TCD[SPI0_TX_DMA_CHANNEL].ATTR = DMA_ATTR_SSIZE(0) | DMA_ATTR_DSIZE(0);
+    DMA->TCD[SPI0_TX_DMA_CHANNEL].NBYTES_MLNO = 1;
+    DMA->TCD[SPI0_TX_DMA_CHANNEL].CSR = DMA_CSR_DREQ_MASK;
+  }
 }
 
 /**
@@ -247,12 +230,10 @@ void spi_lld_stop(SPIDriver *spip) {
   /* If in ready state then disables the SPI clock.*/
   if (spip->state == SPI_READY) {
 
-#if TEST_SPI_RX_DMA
-    SIM->SCGC6 &= ~SIM_SCGC6_DMAMUX;
-    SIM->SCGC7 &= ~SIM_SCGC7_DMA;
-
     nvicDisableVector(DMA0_IRQn);
-#endif
+
+    SIM->SCGC7 &= ~SIM_SCGC7_DMA;
+    SIM->SCGC6 &= ~SIM_SCGC6_DMAMUX;
 
 #if KINETIS_SPI_USE_SPI0
     if (&SPID1 == spip) {
@@ -260,8 +241,6 @@ void spi_lld_stop(SPIDriver *spip) {
       spip->spi->MCR |= SPIx_MCR_HALT;
     }
 #endif
-
-    nvicDisableVector(SPI0_IRQn);
 
     /* Disable the clock for SPI0 */
     SIM->SCGC6 &= ~SIM_SCGC6_SPI0;
@@ -317,7 +296,6 @@ void spi_lld_ignore(SPIDriver *spip, size_t n) {
   spip->nbytes = n;
   spip->rxbuf = NULL;
   spip->txbuf = NULL;
-  spip->txidx = 0;
 
   spi_start_xfer(spip, false);
 }
@@ -343,7 +321,6 @@ void spi_lld_exchange(SPIDriver *spip, size_t n,
   spip->nbytes = n;
   spip->rxbuf = rxbuf;
   spip->txbuf = txbuf;
-  spip->txidx = 0;
 
   spi_start_xfer(spip, false);
 }
@@ -366,7 +343,6 @@ void spi_lld_send(SPIDriver *spip, size_t n, const void *txbuf) {
   spip->nbytes = n;
   spip->rxbuf = NULL;
   spip->txbuf = (void *)txbuf;
-  spip->txidx = 0;
 
   spi_start_xfer(spip, false);
 }
@@ -389,7 +365,6 @@ void spi_lld_receive(SPIDriver *spip, size_t n, void *rxbuf) {
   spip->nbytes = n;
   spip->rxbuf = rxbuf;
   spip->txbuf = NULL;
-  spip->txidx = 0;
 
   spi_start_xfer(spip, false);
 }
@@ -410,7 +385,7 @@ uint16_t spi_lld_polled_exchange(SPIDriver *spip, uint16_t frame) {
 
   spi_start_xfer(spip, true);
 
-  spip->spi->PUSHR = SPIx_PUSHR_PCS(spip->config->pcs) | SPIx_PUSHR_TXDATA(frame);
+  spip->spi->PUSHR = SPIx_PUSHR_TXDATA(frame);
 
   while ((spip->spi->SR & SPIx_SR_RFDF) == 0)
     ;

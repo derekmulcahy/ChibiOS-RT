@@ -159,10 +159,6 @@ struct SPIDriver {
    */
   const uint8_t             *txbuf;
   /**
-   * @brief   Current index in buffer when sending data.
-   */
-  size_t                    txidx;
-  /**
    * @brief   Pointer to the buffer to put received data.
    */
   uint8_t                   *rxbuf;
