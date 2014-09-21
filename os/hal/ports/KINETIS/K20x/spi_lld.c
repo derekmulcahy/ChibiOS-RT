@@ -14,11 +14,6 @@
     limitations under the License.
 */
 
-/*
- * TODO: 16 bit data
- *       Allow selection of top bits of PUSHR (PCS, TAR) per transaction.
- */
-
 /**
  * @file    KINETIS/spi_lld.c
  * @brief   KINETIS SPI subsystem low level driver source.
@@ -35,13 +30,32 @@
 /* Driver local definitions.                                                 */
 /*===========================================================================*/
 
-/*
- * Receive using DMA.
- */
-#define SPI0_RX_DMAMUX_CHANNEL  0
-#define SPI0_RX_DMA_CHANNEL     0
-#define SPI0_TX_DMAMUX_CHANNEL  1
-#define SPI0_TX_DMA_CHANNEL     1
+#if !defined(KINETIS_SPI_USE_SPI0)
+#define KINETIS_SPI_USE_SPI0                TRUE
+#endif
+
+#if !defined(KINETIS_SPI0_RX_DMA_IRQ_PRIORITY)
+#define KINETIS_SPI0_RX_DMA_IRQ_PRIORITY    8
+#endif
+
+#if !defined(KINETIS_SPI0_RX_DMAMUX_CHANNEL)
+#define KINETIS_SPI0_RX_DMAMUX_CHANNEL      0
+#endif
+
+#if !defined(KINETIS_SPI0_RX_DMA_CHANNEL)
+#define KINETIS_SPI0_RX_DMA_CHANNEL         0
+#endif
+
+#if !defined(KINETIS_SPI0_TX_DMAMUX_CHANNEL)
+#define KINETIS_SPI0_TX_DMAMUX_CHANNEL      1
+#endif
+
+#if !defined(KINETIS_SPI0_TX_DMA_CHANNEL)
+#define KINETIS_SPI0_TX_DMA_CHANNEL         1
+#endif
+
+#define DMAMUX_SPI_RX_SOURCE    16
+#define DMAMUX_SPI_TX_SOURCE    17
 
 /*===========================================================================*/
 /* Driver exported variables.                                                */
@@ -64,51 +78,49 @@ volatile uint8_t dmaDummy;
 
 static void spi_start_xfer(SPIDriver *spip, bool polling)
 {
-  /* Assert CS */
-  palClearPad(spip->config->ssport, spip->config->sspad);
-
   /*
    * Enable the DSPI peripheral in master mode.
    * Clear the TX and RX FIFOs.
    * */
   spip->spi->MCR = SPIx_MCR_MSTR | SPIx_MCR_CLR_TXF | SPIx_MCR_CLR_RXF;
 
-  /* If we are not polling then enable interrupts */
+  /* If we are not polling then enable DMA */
   if (!polling) {
 
     /* Enable receive dma and transmit dma */
-    spip->spi->RSER = SPIx_RSER_TFFF_RE | SPIx_RSER_RFDF_RE |
-        SPIx_RSER_RFDF_DIRS | SPIx_RSER_TFFF_DIRS;
+    spip->spi->RSER = SPIx_RSER_RFDF_DIRS | SPIx_RSER_RFDF_RE |
+        SPIx_RSER_TFFF_RE | SPIx_RSER_TFFF_DIRS;
 
+    /* Use dmaDummy as the source/destination when a buffer is not provided */
     dmaDummy = 0;
 
-    // configure RX DMA
+    /* Configure RX DMA */
     if (spip->rxbuf) {
-      DMA->TCD[SPI0_RX_DMA_CHANNEL].DADDR = (uint32_t)spip->rxbuf;
-      DMA->TCD[SPI0_RX_DMA_CHANNEL].DOFF = 1;
+      DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].DADDR = (uint32_t)spip->rxbuf;
+      DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].DOFF = spip->word_size;
     } else {
-      DMA->TCD[SPI0_RX_DMA_CHANNEL].DADDR = (uint32_t)&dmaDummy;
-      DMA->TCD[SPI0_RX_DMA_CHANNEL].DOFF = 0;
+      DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].DADDR = (uint32_t)&dmaDummy;
+      DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].DOFF = 0;
     }
-    DMA->TCD[SPI0_RX_DMA_CHANNEL].BITER_ELINKNO = spip->nbytes;
-    DMA->TCD[SPI0_RX_DMA_CHANNEL].CITER_ELINKNO = spip->nbytes;
+    DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].BITER_ELINKNO = spip->count;
+    DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].CITER_ELINKNO = spip->count;
 
-    /* Set bit 0 in Enable Request Register (ERQ) by writing 0 to SERQ */
-    DMA->SERQ = SPI0_RX_DMA_CHANNEL;
+    /* Enable Request Register (ERQ) for RX by writing 0 to SERQ */
+    DMA->SERQ = KINETIS_SPI0_RX_DMA_CHANNEL;
 
-    // configure TX DMA
+    /* Configure TX DMA */
     if (spip->txbuf) {
-      DMA->TCD[SPI0_TX_DMA_CHANNEL].SADDR =  (uint32_t)spip->txbuf;
-      DMA->TCD[SPI0_TX_DMA_CHANNEL].SOFF = 1;
+      DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].SADDR =  (uint32_t)spip->txbuf;
+      DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].SOFF = spip->word_size;
     } else {
-      DMA->TCD[SPI0_TX_DMA_CHANNEL].SADDR =  (uint32_t)&dmaDummy;
-      DMA->TCD[SPI0_TX_DMA_CHANNEL].SOFF = 0;
+      DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].SADDR =  (uint32_t)&dmaDummy;
+      DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].SOFF = 0;
     }
-    DMA->TCD[SPI0_TX_DMA_CHANNEL].BITER_ELINKNO = spip->nbytes;
-    DMA->TCD[SPI0_TX_DMA_CHANNEL].CITER_ELINKNO = spip->nbytes;
+    DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].BITER_ELINKNO = spip->count;
+    DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].CITER_ELINKNO = spip->count;
 
-    /* Set bit 1 in Enable Request Register (ERQ) by writing 1 to SERQ */
-    DMA->SERQ = SPI0_TX_DMA_CHANNEL;
+    /* Enable Request Register (ERQ) for TX by writing 1 to SERQ */
+    DMA->SERQ = KINETIS_SPI0_TX_DMA_CHANNEL;
   }
 }
 
@@ -119,9 +131,6 @@ static void spi_stop_xfer(SPIDriver *spip)
 
   /* Clear all the flags which are currently set. */
   spip->spi->SR |= spip->spi->SR;
-
-  /* Deassert CS */
-  palSetPad(spip->config->ssport, spip->config->sspad);
 }
 
 /*===========================================================================*/
@@ -132,7 +141,7 @@ OSAL_IRQ_HANDLER(Vector40) {
   OSAL_IRQ_PROLOGUE();
 
   /* Clear bit 0 in Interrupt Request Register (INT) by writing 0 to CINT */
-  DMA->CINT = SPI0_RX_DMA_CHANNEL;
+  DMA->CINT = KINETIS_SPI0_RX_DMA_CHANNEL;
 
   spi_stop_xfer(&SPID1);
 
@@ -184,7 +193,7 @@ void spi_lld_start(SPIDriver *spip) {
     }
 #endif
 
-    nvicEnableVector(DMA0_IRQn, KINETIS_SPI_DMA0_IRQ_PRIORITY);
+    nvicEnableVector(DMA0_IRQn, KINETIS_SPI0_RX_DMA_IRQ_PRIORITY);
 
     SIM->SCGC6 |= SIM_SCGC6_DMAMUX;
     SIM->SCGC7 |= SIM_SCGC7_DMA;
@@ -193,28 +202,43 @@ void spi_lld_start(SPIDriver *spip) {
     DMA->ERR = 0x0F;
 
     /* Rx, select SPI Rx FIFO */
-    DMAMUX->CHCFG[SPI0_RX_DMAMUX_CHANNEL] = DMAMUX_CHCFGn_ENBL | DMAMUX_CHCFGn_SOURCE(16);
+    DMAMUX->CHCFG[KINETIS_SPI0_RX_DMAMUX_CHANNEL] = DMAMUX_CHCFGn_ENBL |
+        DMAMUX_CHCFGn_SOURCE(DMAMUX_SPI_RX_SOURCE);
 
     /* Tx, select SPI Tx FIFO */
-    DMAMUX->CHCFG[SPI0_TX_DMAMUX_CHANNEL] = DMAMUX_CHCFGn_ENBL | DMAMUX_CHCFGn_SOURCE(17);
+    DMAMUX->CHCFG[KINETIS_SPI0_TX_DMAMUX_CHANNEL] = DMAMUX_CHCFGn_ENBL |
+        DMAMUX_CHCFGn_SOURCE(DMAMUX_SPI_TX_SOURCE);
+
+    /* Extract the frame size from the TAR */
+    uint16_t frame_size = ((spip->spi->CTAR[0] >> SPIx_CTARn_FMSZ_SHIFT) &
+        SPIx_CTARn_FMSZ_MASK) + 1;
+
+    /* DMA transfer size is 16 bits for a frame size > 8 bits */
+    uint16_t dma_size = frame_size > 8 ? 1 : 0;
+
+    /* DMA word size is 2 for a 16 bit frame size */
+    spip->word_size = frame_size > 8 ? 2 : 1;
 
     /* configure DMA RX fixed values */
-    DMA->TCD[SPI0_RX_DMA_CHANNEL].SADDR = (uint32_t)&SPI0->POPR;
-    DMA->TCD[SPI0_RX_DMA_CHANNEL].SOFF = 0;
-    DMA->TCD[SPI0_RX_DMA_CHANNEL].SLAST = 0;
-    DMA->TCD[SPI0_RX_DMA_CHANNEL].DLASTSGA = 0;
-    DMA->TCD[SPI0_RX_DMA_CHANNEL].ATTR = DMA_ATTR_SSIZE(0) | DMA_ATTR_DSIZE(0);
-    DMA->TCD[SPI0_RX_DMA_CHANNEL].NBYTES_MLNO = 1;
-    DMA->TCD[SPI0_RX_DMA_CHANNEL].CSR = DMA_CSR_DREQ_MASK | DMA_CSR_INTMAJOR_MASK;
+    DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].SADDR = (uint32_t)&SPI0->POPR;
+    DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].SOFF = 0;
+    DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].SLAST = 0;
+    DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].DLASTSGA = 0;
+    DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].ATTR = DMA_ATTR_SSIZE(dma_size) |
+        DMA_ATTR_DSIZE(dma_size);
+    DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].NBYTES_MLNO = spip->word_size;
+    DMA->TCD[KINETIS_SPI0_RX_DMA_CHANNEL].CSR = DMA_CSR_DREQ_MASK |
+        DMA_CSR_INTMAJOR_MASK;
 
     /* configure DMA TX fixed values */
-    DMA->TCD[SPI0_TX_DMA_CHANNEL].SLAST = 0;
-    DMA->TCD[SPI0_TX_DMA_CHANNEL].DADDR = (uint32_t)&SPI0->PUSHR;
-    DMA->TCD[SPI0_TX_DMA_CHANNEL].DOFF = 0;
-    DMA->TCD[SPI0_TX_DMA_CHANNEL].DLASTSGA = 0;
-    DMA->TCD[SPI0_TX_DMA_CHANNEL].ATTR = DMA_ATTR_SSIZE(0) | DMA_ATTR_DSIZE(0);
-    DMA->TCD[SPI0_TX_DMA_CHANNEL].NBYTES_MLNO = 1;
-    DMA->TCD[SPI0_TX_DMA_CHANNEL].CSR = DMA_CSR_DREQ_MASK;
+    DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].SLAST = 0;
+    DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].DADDR = (uint32_t)&SPI0->PUSHR;
+    DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].DOFF = 0;
+    DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].DLASTSGA = 0;
+    DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].ATTR = DMA_ATTR_SSIZE(dma_size) |
+        DMA_ATTR_DSIZE(dma_size);
+    DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].NBYTES_MLNO = spip->word_size;
+    DMA->TCD[KINETIS_SPI0_TX_DMA_CHANNEL].CSR = DMA_CSR_DREQ_MASK;
   }
 }
 
@@ -256,17 +280,12 @@ void spi_lld_stop(SPIDriver *spip) {
  */
 void spi_lld_select(SPIDriver *spip) {
 
-  /* If we are not using the DSPI managed chip select then assert the SS */
-  if (!spip->config->pcs) {
-    palClearPad(spip->config->ssport, spip->config->sspad);
-  }
+  palClearPad(spip->config->ssport, spip->config->sspad);
 }
 
 /**
  * @brief   Deasserts the slave select signal.
  * @details The previously selected peripheral is unselected.
- *          This has no effect if we are using the KINETIS PCS mode to
- *          manage slave select.
  *
  * @param[in] spip      pointer to the @p SPIDriver object
  *
@@ -274,10 +293,7 @@ void spi_lld_select(SPIDriver *spip) {
  */
 void spi_lld_unselect(SPIDriver *spip) {
 
-  /* If we are not using the DSPI managed chip select then deassert the SS */
-  if (!spip->config->pcs) {
-    palSetPad(spip->config->ssport, spip->config->sspad);
-  }
+  palSetPad(spip->config->ssport, spip->config->sspad);
 }
 
 /**
@@ -293,7 +309,7 @@ void spi_lld_unselect(SPIDriver *spip) {
  */
 void spi_lld_ignore(SPIDriver *spip, size_t n) {
 
-  spip->nbytes = n;
+  spip->count = n;
   spip->rxbuf = NULL;
   spip->txbuf = NULL;
 
@@ -318,7 +334,7 @@ void spi_lld_ignore(SPIDriver *spip, size_t n) {
 void spi_lld_exchange(SPIDriver *spip, size_t n,
                       const void *txbuf, void *rxbuf) {
 
-  spip->nbytes = n;
+  spip->count = n;
   spip->rxbuf = rxbuf;
   spip->txbuf = txbuf;
 
@@ -340,7 +356,7 @@ void spi_lld_exchange(SPIDriver *spip, size_t n,
  */
 void spi_lld_send(SPIDriver *spip, size_t n, const void *txbuf) {
 
-  spip->nbytes = n;
+  spip->count = n;
   spip->rxbuf = NULL;
   spip->txbuf = (void *)txbuf;
 
@@ -362,7 +378,7 @@ void spi_lld_send(SPIDriver *spip, size_t n, const void *txbuf) {
  */
 void spi_lld_receive(SPIDriver *spip, size_t n, void *rxbuf) {
 
-  spip->nbytes = n;
+  spip->count = n;
   spip->rxbuf = rxbuf;
   spip->txbuf = NULL;
 

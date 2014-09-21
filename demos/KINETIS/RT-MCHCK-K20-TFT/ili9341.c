@@ -103,19 +103,27 @@ inline static void data_mode(void) {
 }
 
 inline static void send_command(SPIDriver *spip, uint8_t byte) {
+  spiSelect(spip);
   command_mode();
   spiSend(spip, 1, &byte);
   data_mode();
+  spiUnselect(spip);
 }
 
 void clearDisplay(SPIDriver *spip, uint16_t color) {
   send_command(spip, 0x2A);
   int8_t vx[4] = { 0, 0, 0, 239 };
+
+  spiSelect(spip);
   spiSend(spip, 4, vx);
+  spiUnselect(spip);
 
   send_command(spip, 0x2B);
   int8_t vy[4] = { 0, 0, (320 - 1) >> 8, (320 - 1) & 0xFF };
+
+  spiSelect(spip);
   spiSend(spip, 4, vy);
+  spiUnselect(spip);
 
   send_command(spip, ILI9341_RAMWR);
   uint16_t c[] = {
@@ -136,9 +144,11 @@ void clearDisplay(SPIDriver *spip, uint16_t color) {
     color, color, color, color, color, color, color, color,
     color, color, color, color, color, color, color, color,
   };
+  spiSelect(spip);
   for (uint32_t i = 0; i < ((240 * 320) / (sizeof(c) / 2)) ; i++) {
     spiSend(spip, sizeof(c), c);
   }
+  spiUnselect(spip);
 }
 
 void ILI9341_init(SPIDriver *spip) {
@@ -154,18 +164,12 @@ void ILI9341_init(SPIDriver *spip) {
   while (*addr) {
       uint8_t count = *addr++ - 1;
       send_command(spip, *addr++);
+      spiSelect(spip);
       spiSend(spip, count, addr);
+      spiUnselect(spip);
       addr += count;
   }
   send_command(spip, ILI9341_SLPOUT);    // Exit Sleep
   chThdSleepMilliseconds(120);
   send_command(spip, ILI9341_DISPON);    // Display on
-}
-
-
-void ILI9341_identification(SPIDriver *spip) {
-  send_command(spip, 0x04);
-  uint8_t tx[4];
-  uint8_t rx[4];
-  spiExchange(spip,4,tx,rx);
 }

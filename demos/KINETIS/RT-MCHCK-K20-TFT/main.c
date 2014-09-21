@@ -38,10 +38,9 @@ void spicb(SPIDriver *spip) {
 static const SPIConfig spi1cfg = {
   spicb,
   /* HW dependent part.*/
-  KINETIS_SPI_PCS4,
   GPIOC,
   0,
-  KINETIS_SPI_TAR_8BIT_FAST | SPIx_CTARn_ASC(0)
+  KINETIS_SPI_TAR_8BIT_FAST | SPIx_CTARn_BR(0) | SPIx_CTARn_ASC(0)
 };
 
 /*
@@ -60,8 +59,7 @@ int main(void) {
   chSysInit();
 
   /*
-   * Activates SPID1. Slave select is configured on GPIOC pin 0. This is
-   * PCS4 for the KINETIS DSPI managed slave select.
+   * Activates SPID1. Slave select is configured on GPIOC pin 0.
    */
   palSetPadMode(GPIOC, 5, PAL_MODE_ALTERNATIVE_2);      /* SCK  */
   palSetPadMode(GPIOC, 6, PAL_MODE_ALTERNATIVE_2);      /* MOSI */
@@ -70,6 +68,7 @@ int main(void) {
   palSetPadMode(GPIOD, 0, PAL_MODE_OUTPUT_PUSHPULL);    /* RESET   */
   palSetPadMode(GPIOD, 1, PAL_MODE_OUTPUT_PUSHPULL);    /* D/C   */
 
+  /* Deassert Slave Select */
   palSetPad(GPIOC, 0);
 
   /*

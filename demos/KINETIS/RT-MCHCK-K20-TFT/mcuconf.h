@@ -62,4 +62,9 @@
  * SPI driver system settings.
  */
 #define KINETIS_SPI_USE_SPI0                TRUE
-#define KINETIS_SPI_DMA0_IRQ_PRIORITY       8
+#define KINETIS_SPI0_RX_DMA_IRQ_PRIORITY    8
+#define KINETIS_SPI0_RX_DMAMUX_CHANNEL      0
+#define KINETIS_SPI0_RX_DMA_CHANNEL         0
+#define KINETIS_SPI0_TX_DMAMUX_CHANNEL      1
+#define KINETIS_SPI0_TX_DMA_CHANNEL         1
+

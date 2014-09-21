@@ -29,7 +29,6 @@
 static const SPIConfig spi2cfg = {
   NULL,
   /* HW dependent part.*/
-  KINETIS_SPI_PCS4,
   GPIOC,
   0,
   KINETIS_SPI_TAR_8BIT_FAST
@@ -55,12 +54,11 @@ static inline void init_board(GDisplay *g) {
   palSetPadMode(GPIOC, 5, PAL_MODE_ALTERNATIVE_2);      /* SCK  */
   palSetPadMode(GPIOC, 6, PAL_MODE_ALTERNATIVE_2);      /* MOSI */
   palSetPadMode(GPIOD, 3, PAL_MODE_ALTERNATIVE_2);      /* MISO */
-  palSetPadMode(GPIOC, 0, PAL_MODE_ALTERNATIVE_2);      /* SS   */
+  palSetPadMode(GPIOC, 0, PAL_MODE_OUTPUT_PUSHPULL);      /* SS   */
   palSetPadMode(GPIOD, 0, PAL_MODE_OUTPUT_PUSHPULL);    /* RESET   */
   palSetPadMode(GPIOD, 1, PAL_MODE_OUTPUT_PUSHPULL);    /* D/C   */
 
   spiStart(&SPID1, &spi2cfg);
-  spiSelectI(&SPID1);
 }
 
 /**
@@ -138,7 +136,9 @@ static inline void release_bus(GDisplay *g) {
  * @notapi
  */
 static inline void send_data(uint16_t data) {
+  spiSelect(&SPID1);
   spiPolledExchange(&SPID1,data);
+  spiUnselect(&SPID1);
 }
 
 /**

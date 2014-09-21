@@ -2061,6 +2061,8 @@ typedef struct {
 
 /***********  Bits definition for SPIx_CTARn register  *************/
 #define SPIx_CTARn_DBR            ((uint32_t)0x80000000)     // Double Baud Rate
+#define SPIx_CTARn_FMSZ_SHIFT     27                         // Frame Size Shift
+#define SPIx_CTARn_FMSZ_MASK      0xF                        // Frame Size Mask
 #define SPIx_CTARn_FMSZ(n)        (((n) & 15) << 27)         // Frame Size (+1)
 #define SPIx_CTARn_CPOL           ((uint32_t)0x04000000)     // Clock Polarity
 #define SPIx_CTARn_CPHA           ((uint32_t)0x02000000)     // Clock Phase
